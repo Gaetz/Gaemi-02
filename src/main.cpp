@@ -19,8 +19,8 @@ extern "C" { int AmdPowerXpressRequestHighPerformance = 1; }
 int main(int argc, char *argv[])
 {
 	const std::string title = "Rend l'argent";
-	const int SCREEN_WIDTH = 1280;
-	const int SCREEN_HEIGHT = 720;
+	const u16 SCREEN_WIDTH = 1280;
+	const u16 SCREEN_HEIGHT = 720;
 
 	// Init logging
 	LOG_CONFIG.reporting_level = Debug;
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Delta time
-	unsigned int dt;
+	u32 dt;
 
 	// Main game elements loading
 	auto window(IWindow::create(title));

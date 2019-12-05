@@ -1,7 +1,7 @@
 #include "../engine/Game.h"
 #include "../engine/ResourceManager.h"
-#include "../engine/Gamestate.h"
-#include "Gamestate_Main.h"
+#include "../engine/Scene.h"
+#include "SceneMain.h"
 
 #include "../engine/MathCore.h"
 
@@ -15,7 +15,7 @@ Game::~Game()
 {
 }
 
-void Game::init(int screenWidth, int screenHeight)
+void Game::init(u16 screenWidth, u16 screenHeight)
 {
 	windowWidth = screenWidth;
 	windowHeight = screenHeight;
@@ -56,7 +56,7 @@ void Game::load()
     gRenderer = std::make_shared<GeometryRenderer>(ResourceManager::getShader("rect"));
     */
 	// Game state
-	changeState(std::make_unique<GameStateMain>());
+	changeState(std::make_unique<SceneMain>());
 }
 
 void Game::handleInputs()
@@ -67,7 +67,7 @@ void Game::handleInputs()
 	gameStates.back()->handleEvent(inputState);
 }
 
-void Game::update(unsigned int dt)
+void Game::update(u32 dt)
 {
 	gameStates.back()->update(dt);
 }
@@ -82,7 +82,7 @@ void Game::clean()
 	ResourceManager::clear();
 }
 
-void Game::changeState(std::unique_ptr<GameState> state)
+void Game::changeState(std::unique_ptr<Scene> state)
 {
 	// cleanup the current state
 	if (!gameStates.empty())
@@ -97,7 +97,7 @@ void Game::changeState(std::unique_ptr<GameState> state)
 	gameStates.back()->load();
 }
 
-void Game::pushState(std::unique_ptr<GameState> state)
+void Game::pushState(std::unique_ptr<Scene> state)
 {
 	// pause current state
 	if (!gameStates.empty())

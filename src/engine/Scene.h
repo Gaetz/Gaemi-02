@@ -4,10 +4,12 @@
 #include "Game.h"
 #include "InputState.h"
 
+class Actor;
+
 // Interface for scenes
-class GameState {
+class Scene {
 public:
-	virtual ~GameState() {}
+	virtual ~Scene() {}
 
 	virtual void load() = 0;
 	virtual void clean() = 0;
@@ -18,6 +20,9 @@ public:
 
 	virtual void pause() = 0;
 	virtual void resume() = 0;
+
+    virtual void addActor(Actor* actor) = 0;
+    virtual void removeActor(Actor* actor) = 0;
 
 	virtual void setGame(Game *_game) = 0;
 };

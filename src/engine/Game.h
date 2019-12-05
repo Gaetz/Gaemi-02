@@ -13,8 +13,9 @@
 
 #include "InputManager.h"
 #include "Shader.h"
+#include "Types.h"
 
-class GameState;
+class Scene;
 
 // This game class manages game states and triggers their logic.
 // It supports gamestate stacking. It does not implement a 
@@ -26,15 +27,15 @@ public:
 	Game();
 	virtual ~Game();
 
-	void init(int screenWidth, int screenHeight);
+	void init(u16 screenWidth, u16 screenHeight);
 	void load();
 	void handleInputs();
-	void update(unsigned int dt);
+	void update(u32 dt);
 	void render();
 	void clean();
 
-	void changeState(std::unique_ptr<GameState>);
-	void pushState(std::unique_ptr<GameState>);
+	void changeState(std::unique_ptr<Scene>);
+	void pushState(std::unique_ptr<Scene>);
 	void popState();
 
 	bool isRunning;
@@ -42,7 +43,7 @@ public:
 
 private:
     std::unique_ptr<InputManager> inputManager;
-	std::vector<std::unique_ptr<GameState>> gameStates;
+	std::vector<std::unique_ptr<Scene>> gameStates;
 };
 
 #endif
