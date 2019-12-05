@@ -1,9 +1,9 @@
-#include "../engine/game.h"
-#include "../engine/resource_manager.h"
-#include "../engine/gamestate.h"
-#include "gamestate_main.h"
+#include "../engine/Game.h"
+#include "../engine/ResourceManager.h"
+#include "../engine/Gamestate.h"
+#include "Gamestate_Main.h"
 
-#include "../engine/math_core.h"
+#include "../engine/MathCore.h"
 
 Game::Game() : isRunning(false),
 			   windowWidth(0),

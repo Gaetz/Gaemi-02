@@ -11,8 +11,8 @@
 #include <vector>
 #include <memory>
 
-#include "input_manager.h"
-#include "shader.h"
+#include "InputManager.h"
+#include "Shader.h"
 
 class GameState;
 

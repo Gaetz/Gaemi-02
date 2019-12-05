@@ -1,9 +1,7 @@
 #ifndef GAMESTATE_MAIN_H
 #define GAMESTATE_MAIN_H
 
-#include "../engine/gamestate.h"
-#include "../engine/spritebatch.h"
-#include "../engine/sprite.h"
+#include "../engine/Gamestate.h"
 
 #define SPEED 500
 

@@ -1,5 +1,5 @@
-#include "gamestate_main.h"
-#include "../engine/resource_manager.h"
+#include "Gamestate_Main.h"
+#include "../engine/ResourceManager.h"
 
 #include <cstdlib>
 #include <ctime>
