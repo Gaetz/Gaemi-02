@@ -3,9 +3,26 @@
 
 #include "../engine/Scene.h"
 #include "../engine/Actor.h"
+#include "../engine/VertexArray.h"
 
 #include <vector>
-#define SPEED 500
+
+static std::array<GLfloat, 18> vertexBuffer = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.5f, 0.5f, 0.0f,
+
+        0.5f, 0.5f, 0.0f,
+        -0.5f, 0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f
+};
+
+static std::array<GLfloat, 12> texBuffer = {
+        0.0f, 0.0f, 1.0f,
+        0.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, 0.0f, 0.0f
+};
 
 // Main scene of the game, contains all the game's logic
 class SceneMain : public Scene
@@ -40,6 +57,9 @@ public:
      */
     void removeExpiredActors();
 
+    void addSprite(SpriteComponent* sprite);
+    void removeSprite(SpriteComponent* sprite);
+
 private:
     /**
      * Scene's actors
@@ -57,8 +77,10 @@ private:
      */
     bool isUpdatingActors;
 
-    Game *game;
+    VertexArray vertexArray;
+    std::vector<SpriteComponent*> sprites;
 
+    Game *game;
     int getRand(i32 a, i32 b);
 };
 

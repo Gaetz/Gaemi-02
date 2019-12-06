@@ -3,7 +3,13 @@
 //
 
 #include "Component.h"
+#include "Actor.h"
 
-u32 Component::getUpdateOrder() const {
-    return updateOrder;
+Component::Component(Actor *owner, i32 updateOrder) {
+    owner->addComponent(this);
 }
+
+Component::~Component() {
+    owner->removeComponent(this);
+}
+

@@ -13,6 +13,7 @@
 class Scene;
 
 using std::vector;
+
 /**
  * Top level game object class.
  *
@@ -21,56 +22,84 @@ using std::vector;
 class Actor {
 public:
 
-    enum State { Active, Paused, Expired };
+    enum State {
+        Active, Paused, Expired
+    };
 
-    Actor(Scene& scene);
+    Actor(Scene *scene);
+
     virtual ~Actor();
+
+    /**
+     * Input handling called from scene (not overridable)
+     * @param inputState State of the input devices
+     */
+    void processInput(const InputState &inputState);
+
+    /**
+     * Specific Input handling code
+     * @param inputState State of the input devices
+     */
+    virtual void actorInput(const InputState &inputState);
 
     /**
      * Update function called from scene (not overridable)
      * @param dt Delta time in milliseconds
      */
-    void update(unsigned int dt);
+    void update(u32 dt);
 
     /**
      * Update actor's components (not overridable)
      * @param dt Delta time in milliseconds
      */
-    void updateComponents(unsigned int dt);
+    void updateComponents(u32 dt);
 
     /**
      * Actor specific update code
      * @param dt Delta time in milliseconds
      */
-    virtual void updateActor(unsigned int dt);
+    virtual void updateActor(u32 dt);
 
     /**
      * Add a component to the actor
      * @param component Component to be added
      */
-    void addComponent(Component* component);
+    void addComponent(Component *component);
 
     /**
      * Remove a component from the actor
      * @param component Component to be removed
      */
-    void removeComponent(Component* component);
+    void removeComponent(Component *component);
 
+    /**
+     * Create a world transform matrix from position, rotation and scale
+     * of the actor.
+     */
+    void computeWorldTransform();
+
+    inline Scene* getScene() const { return scene; }
 
     State getState() const;
+
     void setState(State state);
 
+    const Matrix4 &getWorldTransform() const;
+
     const Vector2 &getPosition() const;
+
     void setPosition(const Vector2 &position);
 
     float getRotation() const;
+
     void setRotation(float rotation);
 
     float getScale() const;
+
     void setScale(float scale);
 
 
-private:
+protected:
     /**
      * Actor's state
      */
@@ -92,10 +121,27 @@ private:
     f32 scale;
 
     /**
+     * Actor's transform
+     */
+    Matrix4 worldTransform;
+
+    /**
+     * True when the position/rotation/scale changes
+     */
+    bool shouldRecomputeWorldTransform;
+
+    /**
      * Actor's components
      */
-    std::vector<Component* > components;
+    std::vector<Component *> components;
 
+    /**
+     * Scene containing this actor
+     */
+    Scene *scene;
+
+private:
+    Actor();
 };
 
 

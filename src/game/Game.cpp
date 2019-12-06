@@ -33,8 +33,8 @@ void Game::load()
     Matrix4 twoDimTranslation = Matrix4::createTranslation(Vector3(-fWindowWidth / 2.f, -fWindowHeight / 2.f, 0.0f));
     Matrix4 finalProjection = twoDimTranslation * projection;
     // Configure shaders
-    ResourceManager::getShader("sprite").use();
-    ResourceManager::getShader("sprite").setMatrix4("projection", finalProjection);
+    ResourceManager::getShader("sprite")->use();
+    ResourceManager::getShader("sprite")->setMatrix4("projection", finalProjection);
 
     /*
     // Load shaders

@@ -1,8 +1,9 @@
-#ifndef GAMESTATE_H
-#define GAMESTATE_H
+#ifndef SCENE_H
+#define SCENE_H
 
 #include "Game.h"
 #include "InputState.h"
+#include "SpriteComponent.h"
 
 class Actor;
 

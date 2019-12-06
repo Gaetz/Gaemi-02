@@ -1,11 +1,14 @@
 #include "SceneMain.h"
 #include "../engine/ResourceManager.h"
+#include "TestActor.h"
 
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
 
-SceneMain::SceneMain() {
+SceneMain::SceneMain()
+    : vertexArray(vertexBuffer, texBuffer) {
+    TestActor* a = new TestActor(this);
 }
 
 SceneMain::~SceneMain() {
@@ -18,7 +21,8 @@ void SceneMain::setGame(Game *_game) {
 
 void SceneMain::load() {
     std::srand((int) std::time(nullptr));
-    ResourceManager::loadTexture("./assets/textures/wall.png", "wall");
+    ResourceManager::loadTexture("./assets/textures/tile.png", "tile");
+
 
     /*
     screenHeight = game->windowHeight;
@@ -93,6 +97,8 @@ void SceneMain::removeExpiredActors() {
 }
 
 void SceneMain::draw() {
+    vertexArray.setActive();
+
 
 }
 
@@ -121,5 +127,24 @@ void SceneMain::removeActor(Actor *actor) {
     if (iter != actors.end()) {
         std::iter_swap(iter, actors.end() - 1);
         actors.pop_back();
+    }
+}
+
+void SceneMain::addSprite(SpriteComponent *sprite) {
+    i32 drawOrder = sprite->getDrawOrder();
+    auto iter = sprites.begin();
+    for(;iter != sprites.end(); ++iter) {
+        if(drawOrder < (*iter)->getDrawOrder()) {
+            break;
+        }
+    }
+    // Insert element before position of iterator
+    sprites.insert(iter, sprite);
+}
+
+void SceneMain::removeSprite(SpriteComponent *sprite) {
+    auto iter = std::find(sprites.begin(), sprites.end(), sprite);
+    if(iter != sprites.end()) {
+        sprites.erase(iter);
     }
 }
