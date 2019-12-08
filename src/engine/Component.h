@@ -24,13 +24,13 @@ public:
      * Handle input events
      * @param inputState Input state
      */
-    virtual void processInput(const InputState &inputState);
+    virtual void processInput(const InputState &inputState) {};
 
     /**
      * Update component with delta time
      * @param dt Delta time in milliseconds
      */
-    virtual void update(u32 dt);
+    virtual void update(u32 dt) {};
 
     /**
      * Called when world transform is updated
@@ -41,6 +41,10 @@ public:
 
 protected:
     Actor* owner;
+public:
+    Actor *getOwner() const;
+
+protected:
     u32 updateOrder;
 
 private:

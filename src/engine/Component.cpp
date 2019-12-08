@@ -5,11 +5,16 @@
 #include "Component.h"
 #include "Actor.h"
 
-Component::Component(Actor *owner, i32 updateOrder) {
+Component::Component(Actor *owner, i32 updateOrder)
+: owner(owner), updateOrder(updateOrder) {
     owner->addComponent(this);
 }
 
 Component::~Component() {
     owner->removeComponent(this);
+}
+
+Actor *Component::getOwner() const {
+    return owner;
 }
 

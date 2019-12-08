@@ -23,7 +23,7 @@ class Actor {
 public:
 
     enum State {
-        Active, Paused, Expired
+        Active, Pending, Paused, Expired
     };
 
     Actor(Scene *scene);

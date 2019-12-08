@@ -13,6 +13,7 @@ TestActor::TestActor(Scene *scene)
     SpriteComponent *sc = new SpriteComponent(this, 100);
     sc->setTexture(ResourceManager::getTexture("tile"));
     addComponent(sc);
+    position = Vector2(100, 100);
 }
 
 TestActor::~TestActor() {}

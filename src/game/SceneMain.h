@@ -4,6 +4,7 @@
 #include "../engine/Scene.h"
 #include "../engine/Actor.h"
 #include "../engine/VertexArray.h"
+#include "TestActor.h"
 
 #include <vector>
 
@@ -61,6 +62,7 @@ public:
     void removeSprite(SpriteComponent* sprite);
 
 private:
+    TestActor* testActor;
     /**
      * Scene's actors
      */

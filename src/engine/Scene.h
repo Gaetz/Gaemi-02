@@ -26,6 +26,9 @@ public:
     virtual void removeActor(Actor* actor) = 0;
 
 	virtual void setGame(Game *_game) = 0;
+
+    virtual void addSprite(SpriteComponent* sprite) = 0;
+    virtual void removeSprite(SpriteComponent* sprite) = 0;
 };
 
 #endif

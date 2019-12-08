@@ -5,7 +5,8 @@
 #include "SpriteComponent.h"
 #include "ResourceManager.h"
 #include "Actor.h"
-#include "SceneMain.h"
+#include "Scene.h"
+#include "Color.h"
 
 SpriteComponent::SpriteComponent(Actor *owner, i32 drawOrder)
         : Component(owner), texture(nullptr), drawOrder(drawOrder) {
@@ -24,7 +25,7 @@ void SpriteComponent::draw(Shader *shader) {
     if(texture) {
         Matrix4 scaleMatrix = Matrix4::createScale(texture->width, texture->height, 1.0f);
         Matrix4 world = scaleMatrix * owner->getWorldTransform();
-        shader->use();
+        shader->setVector3f("spriteColor", Color::white.toVector3());
         shader->setMatrix4("world", world);
         texture->setActive();
         glDrawArrays(GL_TRIANGLES, 0, 6);

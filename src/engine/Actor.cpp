@@ -7,7 +7,7 @@
 #include <algorithm>
 
 Actor::Actor(Scene *scene)
-        : state(Active), position(Vector2::zero), scale(1.0f), rotation(0.0f), scene(scene),
+        : state(Pending), position(Vector2::zero), scale(1.0f), rotation(0.0f), scene(scene),
           shouldRecomputeWorldTransform(true) {
     scene->addActor(this);
 }
@@ -25,7 +25,7 @@ Actor::State Actor::getState() const {
 }
 
 void Actor::setState(Actor::State state) {
-    Actor::state = state;
+    this->state = state;
 }
 
 const Matrix4 &Actor::getWorldTransform() const { return worldTransform; }

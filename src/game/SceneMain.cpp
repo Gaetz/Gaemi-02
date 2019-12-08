@@ -1,14 +1,12 @@
 #include "SceneMain.h"
 #include "../engine/ResourceManager.h"
-#include "TestActor.h"
 
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
 
 SceneMain::SceneMain()
-    : vertexArray(vertexBuffer, texBuffer) {
-    TestActor* a = new TestActor(this);
+    : vertexArray(vertexBuffer, texBuffer), testActor(nullptr) {
 }
 
 SceneMain::~SceneMain() {
@@ -22,7 +20,7 @@ void SceneMain::setGame(Game *_game) {
 void SceneMain::load() {
     std::srand((int) std::time(nullptr));
     ResourceManager::loadTexture("./assets/textures/tile.png", "tile");
-
+    testActor = new TestActor(this);
 
     /*
     screenHeight = game->windowHeight;
@@ -52,6 +50,7 @@ void SceneMain::load() {
 }
 
 void SceneMain::clean() {
+    delete testActor;
     /*
     delete board;
     delete pieces;
@@ -77,6 +76,7 @@ void SceneMain::update(unsigned int dt) {
 
     // Move pending actors into actors
     for(auto pendingActor : pendingActors) {
+        pendingActor->setState(Actor::Active);
         actors.emplace_back(pendingActor);
     }
     pendingActors.clear();
@@ -97,9 +97,15 @@ void SceneMain::removeExpiredActors() {
 }
 
 void SceneMain::draw() {
+    Shader* spriteShader = ResourceManager::getShader("sprite");
+    spriteShader->use();
     vertexArray.setActive();
-
-
+    for (auto sprite : sprites)
+    {
+        if(sprite->getOwner()->getState() == Actor::Active) {
+            sprite->draw(spriteShader);
+        }
+    }
 }
 
 int SceneMain::getRand(i32 a, i32 b) {
@@ -110,6 +116,7 @@ void SceneMain::addActor(Actor *actor) {
     if (isUpdatingActors) {
         pendingActors.emplace_back(actor);
     } else {
+        actor->setState(Actor::Active);
         actors.emplace_back(actor);
     }
 }
