@@ -18,7 +18,7 @@
 #include <climits>
 #include <memory>
 
-#include "../src/os.cc"
+#include "../../../core/os.cc"
 
 #ifdef _WIN32
 #  include <io.h>
