@@ -3,8 +3,10 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-project ("vulkan_guide")
-
+project(gaemi-02
+    VERSION 0.1.0
+    DESCRIPTION "Gaemi 02"
+    LANGUAGES CXX)
 
 find_package(Vulkan REQUIRED)
 
@@ -12,14 +14,16 @@ add_subdirectory(third_party)
 
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
+set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 
+set(GAME_DIR game)
 add_subdirectory(core)
-add_subdirectory(game)
+add_subdirectory(${GAME_DIR})
+
+add_executable(${PROJECT_NAME} ${GAME_DIR}/main.cpp)
+target_link_libraries(${PROJECT_NAME} game engine)
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
-
-
-
 
 file(GLOB_RECURSE GLSL_SOURCE_FILES
     "${PROJECT_SOURCE_DIR}/assets/shaders/*.frag"

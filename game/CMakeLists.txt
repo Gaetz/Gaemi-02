@@ -1,9 +1,8 @@
-## Game sources
-file( GLOB game_SOURCES *.cpp )
-add_library( game ${game_SOURCES} )
-target_link_libraries(game engine)
-target_include_directories(game PUBLIC engine)
+project(game)
+set(CMAKE_CXX_STANDARD 20)
 
-## Executable
-add_executable(${CMAKE_PROJECT_NAME} main.cpp)
-target_link_libraries(${CMAKE_PROJECT_NAME} game engine)
+## Game sources
+file( GLOB GAME_SOURCES *.cpp )
+add_library( game ${GAME_SOURCES} )
+target_include_directories(game PUBLIC engine)
+target_link_libraries(game engine)

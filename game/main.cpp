@@ -1,12 +1,10 @@
 #include <engine.h>
 
+#include "game.hpp"
+
 int main(int argc, char* argv[])
 {
-	VulkanEngine engine;
-
-	engine.init();
-	engine.run();
-	engine.cleanup();	
-
+	Game game;
+	game.run();
 	return 0;
 }

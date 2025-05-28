@@ -21,11 +21,11 @@ class Scene;
 // It supports gamestate stacking. It does not implement a 
 // gameobject/entity/whatever logic to let you free to choose
 // your architecture.
-class Game
+class game
 {
 public:
-	Game();
-	virtual ~Game();
+	game();
+	virtual ~game();
 
 	void init(u16 screenWidth, u16 screenHeight);
 	void load();
