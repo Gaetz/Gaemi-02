@@ -1,7 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include "Game.h"
+#include "game.h"
 #include "InputState.h"
 #include "SpriteComponent.h"
 
@@ -25,7 +25,7 @@ public:
     virtual void addActor(Actor* actor) = 0;
     virtual void removeActor(Actor* actor) = 0;
 
-	virtual void setGame(Game *_game) = 0;
+	virtual void setGame(game *_game) = 0;
 
     virtual void addSprite(SpriteComponent* sprite) = 0;
     virtual void removeSprite(SpriteComponent* sprite) = 0;

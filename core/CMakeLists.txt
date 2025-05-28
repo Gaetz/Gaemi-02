@@ -1,5 +1,5 @@
-
 # Add source to this project's executable.
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 file( GLOB engine_SOURCES *.cpp )
 add_library( engine SHARED ${engine_SOURCES} )

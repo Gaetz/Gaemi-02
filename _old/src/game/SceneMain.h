@@ -39,7 +39,7 @@ public:
 	void handleEvent(const InputState &);
 	void update(unsigned int dt);
 	void draw();
-	void setGame(Game *);
+	void setGame(game *);
 
 	/**
 	 * Add an actor into the scene
@@ -82,7 +82,7 @@ private:
     VertexArray vertexArray;
     std::vector<SpriteComponent*> sprites;
 
-    Game *game;
+    game *game;
     int getRand(i32 a, i32 b);
 };
 

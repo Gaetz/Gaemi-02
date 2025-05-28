@@ -1,21 +1,21 @@
-#include "../engine/Game.h"
+#include "../engine/game.h"
 #include "../engine/ResourceManager.h"
 #include "../engine/Scene.h"
 #include "SceneMain.h"
 
 #include "../engine/MathCore.h"
 
-Game::Game() : isRunning(false),
+game::game() : isRunning(false),
 			   windowWidth(0),
 			   windowHeight(0)
 {
 }
 
-Game::~Game()
+game::~game()
 {
 }
 
-void Game::init(u16 screenWidth, u16 screenHeight)
+void game::init(u16 screenWidth, u16 screenHeight)
 {
 	windowWidth = screenWidth;
 	windowHeight = screenHeight;
@@ -24,7 +24,7 @@ void Game::init(u16 screenWidth, u16 screenHeight)
 	inputManager = std::make_unique<InputManager>();
 }
 
-void Game::load()
+void game::load()
 {
 	ResourceManager::loadShader("assets/shaders/sprite.vert", "assets/shaders/sprite.frag", "", "sprite");
     float fWindowWidth = static_cast<float>(windowWidth);
@@ -59,7 +59,7 @@ void Game::load()
 	changeState(std::make_unique<SceneMain>());
 }
 
-void Game::handleInputs()
+void game::handleInputs()
 {
 	inputManager->prepareForUpdate();
 	isRunning = inputManager->pollInputs();
@@ -67,22 +67,22 @@ void Game::handleInputs()
 	gameStates.back()->handleEvent(inputState);
 }
 
-void Game::update(u32 dt)
+void game::update(u32 dt)
 {
 	gameStates.back()->update(dt);
 }
 
-void Game::render()
+void game::render()
 {
 	gameStates.back()->draw();
 }
 
-void Game::clean()
+void game::clean()
 {
 	ResourceManager::clear();
 }
 
-void Game::changeState(std::unique_ptr<Scene> state)
+void game::changeState(std::unique_ptr<Scene> state)
 {
 	// cleanup the current state
 	if (!gameStates.empty())
@@ -97,7 +97,7 @@ void Game::changeState(std::unique_ptr<Scene> state)
 	gameStates.back()->load();
 }
 
-void Game::pushState(std::unique_ptr<Scene> state)
+void game::pushState(std::unique_ptr<Scene> state)
 {
 	// pause current state
 	if (!gameStates.empty())
@@ -110,7 +110,7 @@ void Game::pushState(std::unique_ptr<Scene> state)
 	gameStates.back()->load();
 }
 
-void Game::popState()
+void game::popState()
 {
 	// cleanup the current state
 	if (!gameStates.empty())

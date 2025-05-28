@@ -13,7 +13,7 @@ SceneMain::~SceneMain() {
     clean();
 }
 
-void SceneMain::setGame(Game *_game) {
+void SceneMain::setGame(game *_game) {
     game = _game;
 }
 
