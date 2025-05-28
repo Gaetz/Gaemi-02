@@ -26,8 +26,8 @@ void Engine::init()
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
     _window = SDL_CreateWindow(
         "Vulkan Engine",
-        _windowExtent.width,
-        _windowExtent.height,
+        _window_extent.width,
+        _window_extent.height,
         window_flags);
 
     // Initialize Vulkan
@@ -52,7 +52,7 @@ void Engine::init_vulkan() {
     vkb::Instance vkb_instance = inst_ret.value();
 
     _instance = vkb_instance.instance;
-    _debugMessenger = vkb_instance.debug_messenger;
+    _debug_messenger = vkb_instance.debug_messenger;
 
     SDL_Vulkan_CreateSurface(_window, _instance, nullptr, &_surface);
 
@@ -84,14 +84,55 @@ void Engine::init_vulkan() {
     _chosenGPU = physicalDevice.physical_device;
 }
 
-void Engine::init_swapchain() {}
+void Engine::init_swapchain() {
+    create_swapchain(_window_extent.width, _window_extent.height);
+}
+
 void Engine::init_commands() {}
 void Engine::init_sync_structures() {}
+
+void Engine::create_swapchain(uint32_t width, uint32_t height) {
+    vkb::SwapchainBuilder swapchain_builder{ _chosenGPU,_device,_surface };
+
+    _swapchain_image_format = VK_FORMAT_B8G8R8A8_UNORM;
+
+    vkb::Swapchain vkb_swapchain = swapchain_builder
+        //.use_default_format_selection()
+        .set_desired_format(VkSurfaceFormatKHR{ .format = _swapchain_image_format, .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR })
+        //use vsync present mode
+        .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
+        .set_desired_extent(width, height)
+        .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+        .build()
+        .value();
+
+    _swapchain_extent = vkb_swapchain.extent;
+    //store swapchain and its related images
+    _swapchain = vkb_swapchain.swapchain;
+    _swapchain_images = vkb_swapchain.get_images().value();
+    _swapchain_image_views = vkb_swapchain.get_image_views().value();
+}
+
+void Engine::destroy_swapchain() {
+    vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+
+    // destroy swapchain resources
+    for (int i = 0; i < _swapchain_image_views.size(); i++) {
+
+        vkDestroyImageView(_device, _swapchain_image_views[i], nullptr);
+    }
+}
 
 void Engine::cleanup()
 {
     if (_is_initialized) {
+        destroy_swapchain();
 
+        vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        vkDestroyDevice(_device, nullptr);
+
+        vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
+        vkDestroyInstance(_instance, nullptr);
         SDL_DestroyWindow(_window);
     }
 
