@@ -8,12 +8,12 @@ VkCommandPoolCreateInfo CommandPoolCreateInfo(uint32_t queueFamilyIndex, VkComma
 VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool, uint32_t count = 1);
 //< init_cmd
 
-VkCommandBufferBeginInfo command_buffer_begin_info(VkCommandBufferUsageFlags flags = 0);
+VkCommandBufferBeginInfo CommandBufferBeginInfo(VkCommandBufferUsageFlags flags = 0);
 VkCommandBufferSubmitInfo command_buffer_submit_info(VkCommandBuffer cmd);
 
-VkFenceCreateInfo fence_create_info(VkFenceCreateFlags flags = 0);
+VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0);
 
-VkSemaphoreCreateInfo semaphore_create_info(VkSemaphoreCreateFlags flags = 0);
+VkSemaphoreCreateInfo SemaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
 
 VkSubmitInfo2 submit_info(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* signalSemaphoreInfo,
     VkSemaphoreSubmitInfo* waitSemaphoreInfo);
@@ -27,7 +27,7 @@ VkRenderingAttachmentInfo depth_attachment_info(VkImageView view,
 VkRenderingInfo rendering_info(VkExtent2D renderExtent, VkRenderingAttachmentInfo* colorAttachment,
     VkRenderingAttachmentInfo* depthAttachment);
 
-VkImageSubresourceRange image_subresource_range(VkImageAspectFlags aspectMask);
+VkImageSubresourceRange ImageSubresourceRange(VkImageAspectFlags aspectMask);
 
 VkSemaphoreSubmitInfo semaphore_submit_info(VkPipelineStageFlags2 stageMask, VkSemaphore semaphore);
 VkDescriptorSetLayoutBinding descriptorset_layout_binding(VkDescriptorType type, VkShaderStageFlags stageFlags,

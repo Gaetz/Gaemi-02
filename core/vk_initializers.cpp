@@ -28,7 +28,7 @@ VkCommandBufferAllocateInfo vkinit::CommandBufferAllocateInfo(
 //< init_cmd
 // 
 //> init_cmd_draw
-VkCommandBufferBeginInfo vkinit::command_buffer_begin_info(VkCommandBufferUsageFlags flags /*= 0*/)
+VkCommandBufferBeginInfo vkinit::CommandBufferBeginInfo(const VkCommandBufferUsageFlags flags /*= 0*/)
 {
     VkCommandBufferBeginInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -41,7 +41,7 @@ VkCommandBufferBeginInfo vkinit::command_buffer_begin_info(VkCommandBufferUsageF
 //< init_cmd_draw
 
 //> init_sync
-VkFenceCreateInfo vkinit::fence_create_info(VkFenceCreateFlags flags /*= 0*/)
+VkFenceCreateInfo vkinit::FenceCreateInfo(const VkFenceCreateFlags flags /*= 0*/)
 {
     VkFenceCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -52,7 +52,7 @@ VkFenceCreateInfo vkinit::fence_create_info(VkFenceCreateFlags flags /*= 0*/)
     return info;
 }
 
-VkSemaphoreCreateInfo vkinit::semaphore_create_info(VkSemaphoreCreateFlags flags /*= 0*/)
+VkSemaphoreCreateInfo vkinit::SemaphoreCreateInfo(const VkSemaphoreCreateFlags flags /*= 0*/)
 {
     VkSemaphoreCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -177,16 +177,16 @@ VkRenderingInfo vkinit::rendering_info(VkExtent2D renderExtent, VkRenderingAttac
 }
 //< render_info
 //> subresource
-VkImageSubresourceRange vkinit::image_subresource_range(VkImageAspectFlags aspectMask)
+VkImageSubresourceRange vkinit::ImageSubresourceRange(const VkImageAspectFlags aspectMask)
 {
-    VkImageSubresourceRange subImage {};
-    subImage.aspectMask = aspectMask;
-    subImage.baseMipLevel = 0;
-    subImage.levelCount = VK_REMAINING_MIP_LEVELS;
-    subImage.baseArrayLayer = 0;
-    subImage.layerCount = VK_REMAINING_ARRAY_LAYERS;
+    VkImageSubresourceRange sub_image {};
+    sub_image.aspectMask = aspectMask;
+    sub_image.baseMipLevel = 0;
+    sub_image.levelCount = VK_REMAINING_MIP_LEVELS;
+    sub_image.baseArrayLayer = 0;
+    sub_image.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-    return subImage;
+    return sub_image;
 }
 //< subresource
 

@@ -8,6 +8,7 @@
 #include <vk_initializers.h>
 #include <vk_types.h>
 #include <VkBootstrap.h>
+#include <vk_images.h>
 
 #include <chrono>
 #include <thread>
@@ -109,9 +110,24 @@ void Engine::InitCommands()
         VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frames[i]._main_command_buffer));
     }
 }
-void Engine::InitSyncStructures() {}
+void Engine::InitSyncStructures()
+{
+    // Create syncronization structures
+    // One fence to control when the gpu has finished rendering the frame,
+    // and 2 semaphores to syncronize rendering with swapchain.
+    // We want the fence to start signalled so we can wait on it on the first frame
+    VkFenceCreateInfo fence_create_info = vkinit::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+    VkSemaphoreCreateInfo semaphore_create_info = vkinit::SemaphoreCreateInfo();
 
-void Engine::CreateSwapchain(uint32_t width, uint32_t height) {
+    for (int i = 0; i < FRAME_OVERLAP; i++) {
+        VK_CHECK(vkCreateFence(_device, &fence_create_info, nullptr, &_frames[i]._render_fence));
+
+        VK_CHECK(vkCreateSemaphore(_device, &semaphore_create_info, nullptr, &_frames[i]._swapchain_semaphore));
+        VK_CHECK(vkCreateSemaphore(_device, &semaphore_create_info, nullptr, &_frames[i]._render_semaphore));
+    }
+}
+
+void Engine::CreateSwapchain(const uint32_t width, const uint32_t height) {
     vkb::SwapchainBuilder swapchain_builder{ _chosenGPU,_device,_surface };
 
     _swapchain_image_format = VK_FORMAT_B8G8R8A8_UNORM;
@@ -149,7 +165,13 @@ void Engine::Clean()
         vkDeviceWaitIdle(_device);
 
         for (int i = 0; i < FRAME_OVERLAP; i++) {
+            // Already written from before
             vkDestroyCommandPool(_device, _frames[i]._command_pool, nullptr);
+
+            // Destroy sync objects
+            vkDestroyFence(_device, _frames[i]._render_fence, nullptr);
+            vkDestroySemaphore(_device, _frames[i]._render_semaphore, nullptr);
+            vkDestroySemaphore(_device ,_frames[i]._swapchain_semaphore, nullptr);
         }
 
         DestroySwapchain();
@@ -168,7 +190,68 @@ void Engine::Clean()
 
 void Engine::Draw()
 {
-    // nothing yet
+    // Wait until the gpu has finished rendering the last frame. Timeout of 1 second
+    VK_CHECK(vkWaitForFences(_device, 1, &GetCurrentFrame()._render_fence, true, 1000000000));
+    VK_CHECK(vkResetFences(_device, 1, &GetCurrentFrame()._render_fence));
+
+    // Request image from the swapchain
+    uint32_t swapchain_image_index;
+    VK_CHECK(vkAcquireNextImageKHR(_device, _swapchain, 1000000000, GetCurrentFrame()._swapchain_semaphore, nullptr, &swapchain_image_index));
+
+    // Now that we are sure that the commands finished executing, we can safely
+    // reset command buffer and restart recording commands
+    VkCommandBuffer cmd = GetCurrentFrame()._main_command_buffer;
+    VK_CHECK(vkResetCommandBuffer(cmd, 0));
+    const VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We will use this command buffer exactly once
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
+
+    // Make the swapchain image into writeable mode before rendering
+    vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    // Clear image
+    // Make a clear-color from frame number. This will flash with a 120 frame period.
+    VkClearColorValue clear_value;
+    const float flash = std::abs(std::sin(_frame_number / 120.f));
+    clear_value = { { 0.0f, 0.0f, flash, 1.0f } };
+    const VkImageSubresourceRange clearRange = vkinit::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+    vkCmdClearColorImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &clearRange);
+
+    // Make the swapchain image into presentable mode
+    vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index],VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+    VK_CHECK(vkEndCommandBuffer(cmd));
+
+    // Prepare the submission to the queue:
+    // - we want to wait on the _swapchain_semaphore, as that semaphore is signaled when the swapchain is ready
+    // - we will signal the _render_semaphore, to signal that rendering has finished
+
+    VkCommandBufferSubmitInfo cmd_info = vkinit::command_buffer_submit_info(cmd);
+    VkSemaphoreSubmitInfo wait_info = vkinit::semaphore_submit_info(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,GetCurrentFrame()._swapchain_semaphore);
+    VkSemaphoreSubmitInfo signal_info = vkinit::semaphore_submit_info(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT, GetCurrentFrame()._render_semaphore);
+
+    const VkSubmitInfo2 submit = vkinit::submit_info(&cmd_info, &signal_info, &wait_info);
+
+    // Submit command buffer to the queue and execute it.
+    // _render_fence will now block until the graphic commands finish execution
+    VK_CHECK(vkQueueSubmit2(_graphics_queue, 1, &submit, GetCurrentFrame()._render_fence));
+
+    // Prepare present
+    // This will put the image we just rendered to into the visible window.
+    // We want to wait on the _render_semaphore for that,
+    // as its necessary that drawing commands have finished before the image is displayed to the user
+    VkPresentInfoKHR present_info = {};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.pNext = nullptr;
+    present_info.pSwapchains = &_swapchain;
+    present_info.swapchainCount = 1;
+    present_info.pWaitSemaphores = &GetCurrentFrame()._render_semaphore;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pImageIndices = &swapchain_image_index;
+
+    VK_CHECK(vkQueuePresentKHR(_graphics_queue, &present_info));
+
+    // Increase the number of frames drawn
+    _frame_number++;
 }
 
 void Engine::Run()
