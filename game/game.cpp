@@ -3,8 +3,8 @@
 void Game::run() {
     Engine engine;
 
-    engine.init();
-    engine.run();
-    engine.cleanup();
+    engine.Init();
+    engine.Run();
+    engine.Clean();
 }
 

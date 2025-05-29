@@ -15,7 +15,8 @@
 Engine* loaded_engine = nullptr;
 
 Engine& Engine::Get() { return *loaded_engine; }
-void Engine::init()
+
+void Engine::Init()
 {
     // Only one engine initialization is allowed with the application.
     assert(loaded_engine == nullptr);
@@ -31,16 +32,16 @@ void Engine::init()
         window_flags);
 
     // Initialize Vulkan
-    init_vulkan();
-    init_swapchain();
-    init_commands();
-    init_sync_structures();
+    InitVulkan();
+    InitSwapchain();
+    InitCommands();
+    InitSyncStructures();
 
     // Everything went fine
     _is_initialized = true;
 }
 
-void Engine::init_vulkan() {
+void Engine::InitVulkan() {
     bool use_validation_layers = true;
 
     vkb::InstanceBuilder builder;
@@ -69,7 +70,7 @@ void Engine::init_vulkan() {
     // Use vkbootstrap to select a gpu.
     // We want a gpu that can write to the SDL surface and supports vulkan 1.3 with the correct features
     vkb::PhysicalDeviceSelector selector{ vkb_instance };
-    vkb::PhysicalDevice physicalDevice = selector
+    vkb::PhysicalDevice physical_device = selector
         .set_minimum_version(1, 3)
         .set_required_features_13(features)
         .set_required_features_12(features12)
@@ -78,20 +79,39 @@ void Engine::init_vulkan() {
         .value();
 
     // Create the final vulkan device
-    vkb::DeviceBuilder deviceBuilder{ physicalDevice };
-    vkb::Device vkbDevice = deviceBuilder.build().value();
-    _device = vkbDevice.device;
-    _chosenGPU = physicalDevice.physical_device;
+    vkb::DeviceBuilder deviceBuilder{ physical_device };
+    vkb::Device vkb_device = deviceBuilder.build().value();
+    _device = vkb_device.device;
+    _chosenGPU = physical_device.physical_device;
+
+    // Use vkbootstrap to get a Graphics queue
+    _graphics_queue = vkb_device.get_queue(vkb::QueueType::graphics).value();
+    _graphics_queue_family = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
 }
 
-void Engine::init_swapchain() {
-    create_swapchain(_window_extent.width, _window_extent.height);
+void Engine::InitSwapchain() {
+    CreateSwapchain(_window_extent.width, _window_extent.height);
 }
 
-void Engine::init_commands() {}
-void Engine::init_sync_structures() {}
+void Engine::InitCommands()
+{
+    // Create a command pool for commands submitted to the graphics queue.
+    // We also want the pool to allow for resetting of individual command buffers
+    VkCommandPoolCreateInfo command_pool_info = vkinit::CommandPoolCreateInfo(_graphics_queue_family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
-void Engine::create_swapchain(uint32_t width, uint32_t height) {
+    for (int i = 0; i < FRAME_OVERLAP; i++) {
+
+        VK_CHECK(vkCreateCommandPool(_device, &command_pool_info, nullptr, &_frames[i]._command_pool));
+
+        // Allocate the default command buffer that we will use for rendering
+        VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::CommandBufferAllocateInfo(_frames[i]._command_pool, 1);
+
+        VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frames[i]._main_command_buffer));
+    }
+}
+void Engine::InitSyncStructures() {}
+
+void Engine::CreateSwapchain(uint32_t width, uint32_t height) {
     vkb::SwapchainBuilder swapchain_builder{ _chosenGPU,_device,_surface };
 
     _swapchain_image_format = VK_FORMAT_B8G8R8A8_UNORM;
@@ -107,13 +127,13 @@ void Engine::create_swapchain(uint32_t width, uint32_t height) {
         .value();
 
     _swapchain_extent = vkb_swapchain.extent;
-    //store swapchain and its related images
+    // Store swapchain and its related images
     _swapchain = vkb_swapchain.swapchain;
     _swapchain_images = vkb_swapchain.get_images().value();
     _swapchain_image_views = vkb_swapchain.get_image_views().value();
 }
 
-void Engine::destroy_swapchain() {
+void Engine::DestroySwapchain() {
     vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
     // destroy swapchain resources
@@ -123,10 +143,16 @@ void Engine::destroy_swapchain() {
     }
 }
 
-void Engine::cleanup()
+void Engine::Clean()
 {
     if (_is_initialized) {
-        destroy_swapchain();
+        vkDeviceWaitIdle(_device);
+
+        for (int i = 0; i < FRAME_OVERLAP; i++) {
+            vkDestroyCommandPool(_device, _frames[i]._command_pool, nullptr);
+        }
+
+        DestroySwapchain();
 
         vkDestroySurfaceKHR(_instance, _surface, nullptr);
         vkDestroyDevice(_device, nullptr);
@@ -140,12 +166,12 @@ void Engine::cleanup()
     loaded_engine = nullptr;
 }
 
-void Engine::draw()
+void Engine::Draw()
 {
     // nothing yet
 }
 
-void Engine::run()
+void Engine::Run()
 {
     SDL_Event e;
     bool bQuit = false;
@@ -173,6 +199,6 @@ void Engine::run()
             continue;
         }
 
-        draw();
+        Draw();
     }
 }
