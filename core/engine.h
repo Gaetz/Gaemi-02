@@ -2,15 +2,40 @@
 
 #include <vk_types.h>
 
+constexpr unsigned int FRAME_OVERLAP = 2;
+
+struct DeletionQueue
+{
+	std::deque<std::function<void()>> deletors;
+
+	void PushFunction(std::function<void()>&& function) {
+		deletors.push_back(function);
+	}
+
+	/**
+	 * Remove stored functions from the deletion queue and execute them.
+	 *
+	 * If we need to delete thousands of objects and want them deleted faster,
+	 * a better implementation would be to store arrays of vulkan handles of various
+	 * types such as VkImage, VkBuffer, and so on. And then delete those from a loop.
+	 */
+	void Flush() {
+		// Reverse iterate the deletion queue to execute all the functions
+		for (auto it = deletors.rbegin(); it != deletors.rend(); ++it) {
+			(*it)(); //call functors
+		}
+
+		deletors.clear();
+	}
+};
 
 struct FrameData {
 	VkCommandPool _command_pool;
 	VkCommandBuffer _main_command_buffer;
 	VkSemaphore _swapchain_semaphore, _render_semaphore;
 	VkFence _render_fence;
+	DeletionQueue _deletion_queue;
 };
-
-constexpr unsigned int FRAME_OVERLAP = 2;
 
 class Engine {
 public:
@@ -20,12 +45,14 @@ public:
 	bool _stop_rendering{ false };
 	VkExtent2D _window_extent{ 1700 , 900 };
 	struct SDL_Window* _window{ nullptr };
+	DeletionQueue _main_deletion_queue;
 
 	VkInstance _instance{ VK_NULL_HANDLE };
 	VkDebugUtilsMessengerEXT _debug_messenger{ VK_NULL_HANDLE };
-	VkPhysicalDevice _chosenGPU;
+	VkPhysicalDevice _chosen_GPU;
 	VkDevice _device;
 	VkSurfaceKHR _surface;
+	VmaAllocator _allocator;
 
 	VkSwapchainKHR _swapchain;
 	VkFormat _swapchain_image_format;
@@ -37,6 +64,10 @@ public:
 	VkQueue _graphics_queue;
 	uint32_t _graphics_queue_family;
 
+	// Draw resources
+	AllocatedImage _drawImage;
+	VkExtent2D _drawExtent;
+
 	static Engine& Get();
 
 	//initializes everything in the engine
@@ -47,6 +78,7 @@ public:
 
 	//draw loop
 	void Draw();
+	void DrawBackground(VkCommandBuffer cmd);
 
 	//run main loop
 	void Run();
