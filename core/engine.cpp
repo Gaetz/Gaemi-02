@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include <thread>
+#include <vk_pipelines.h>
 
 Engine* loaded_engine = nullptr;
 
@@ -40,6 +41,8 @@ void Engine::Init()
     InitSwapchain();
     InitCommands();
     InitSyncStructures();
+    InitDescriptors();
+    InitPipelines();
 
     // Everything went fine
     _is_initialized = true;
@@ -177,6 +180,94 @@ void Engine::InitSyncStructures()
     }
 }
 
+void Engine::InitDescriptors()
+{
+    // Create a descriptor pool that will hold 10 sets with 1 image each
+    std::vector<DescriptorAllocator::PoolSizeRatio> sizes =
+    {
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }
+    };
+
+    globalDescriptorAllocator.InitPool(_device, 10, sizes);
+
+    // Make the descriptor set layout for our compute draw
+    {
+        DescriptorLayoutBuilder builder;
+        builder.AddBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        _draw_image_descriptor_layout = builder.Build(_device, VK_SHADER_STAGE_COMPUTE_BIT);
+    }
+
+    // Allocate a descriptor set for our draw image
+    _draw_image_descriptors = globalDescriptorAllocator.Allocate(_device,_draw_image_descriptor_layout);
+
+    VkDescriptorImageInfo img_info{};
+    img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    img_info.imageView = _drawImage._image_view;
+
+    VkWriteDescriptorSet draw_image_write = {};
+    draw_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    draw_image_write.pNext = nullptr;
+
+    draw_image_write.dstBinding = 0;
+    draw_image_write.dstSet = _draw_image_descriptors;
+    draw_image_write.descriptorCount = 1;
+    draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    draw_image_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    draw_image_write.pImageInfo = &img_info;
+
+    vkUpdateDescriptorSets(_device, 1, &draw_image_write, 0, nullptr);
+
+    // Clean up
+    _main_deletion_queue.PushFunction([&]() {
+        globalDescriptorAllocator.DestroyPool(_device);
+        vkDestroyDescriptorSetLayout(_device, _draw_image_descriptor_layout, nullptr);
+    });
+}
+
+void Engine::InitPipelines()
+{
+    InitBackgroundPipelines();
+}
+
+void Engine::InitBackgroundPipelines()
+{
+    VkPipelineLayoutCreateInfo compute_layout{};
+    compute_layout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    compute_layout.pNext = nullptr;
+    compute_layout.pSetLayouts = &_draw_image_descriptor_layout;
+    compute_layout.setLayoutCount = 1;
+
+    VK_CHECK(vkCreatePipelineLayout(_device, &compute_layout, nullptr, &_gradient_pipeline_layout));
+
+    VkShaderModule compute_draw_shader;
+    if (!vkutil::LoadShaderModule("../assets/shaders/gradient.comp.spv", _device, &compute_draw_shader))
+    {
+        fmt::print("Error when building the compute shader \n");
+    }
+
+    VkPipelineShaderStageCreateInfo stage_info{};
+    stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stage_info.pNext = nullptr;
+    stage_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stage_info.module = compute_draw_shader;
+    stage_info.pName = "main";
+
+    VkComputePipelineCreateInfo compute_pipeline_create_info{};
+    compute_pipeline_create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    compute_pipeline_create_info.pNext = nullptr;
+    compute_pipeline_create_info.layout = _gradient_pipeline_layout;
+    compute_pipeline_create_info.stage = stage_info;
+
+    VK_CHECK(vkCreateComputePipelines(_device,VK_NULL_HANDLE,1,&compute_pipeline_create_info, nullptr, &_gradient_pipeline));
+
+    vkDestroyShaderModule(_device, compute_draw_shader, nullptr);
+
+    _main_deletion_queue.PushFunction([&]() {
+        vkDestroyPipelineLayout(_device, _gradient_pipeline_layout, nullptr);
+        vkDestroyPipeline(_device, _gradient_pipeline, nullptr);
+    });
+}
+
 void Engine::CreateSwapchain(const uint32_t width, const uint32_t height) {
     vkb::SwapchainBuilder swapchain_builder{ _chosen_GPU,_device,_surface };
 
@@ -185,7 +276,7 @@ void Engine::CreateSwapchain(const uint32_t width, const uint32_t height) {
     vkb::Swapchain vkb_swapchain = swapchain_builder
         //.use_default_format_selection()
         .set_desired_format(VkSurfaceFormatKHR{ .format = _swapchain_image_format, .colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR })
-        //use vsync present mode
+        // use vsync present mode
         .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
         .set_desired_extent(width, height)
         .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
@@ -253,50 +344,28 @@ void Engine::Draw()
     // reset command buffer and restart recording commands
     VkCommandBuffer cmd = GetCurrentFrame()._main_command_buffer;
     VK_CHECK(vkResetCommandBuffer(cmd, 0));
-    const VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We will use this command buffer exactly once
-
-    /*
+    const VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We will use this command buffer exactly on
+    _draw_extent.width = _drawImage._image_extent.width;
+    _draw_extent.height = _drawImage._image_extent.height;
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
-    // Make the swapchain image into writeable mode before rendering
-    vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
-    // Clear image
-    // Make a clear-color from frame number. This will flash with a 120 frame period.
-    VkClearColorValue clear_value;
-    const float flash = std::abs(std::sin(_frame_number / 120.f));
-    clear_value = { { 0.0f, 0.0f, flash, 1.0f } };
-    const VkImageSubresourceRange clearRange = vkinit::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-    vkCmdClearColorImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_GENERAL, &clear_value, 1, &clearRange);
-
-    // Make the swapchain image into presentable mode
-    vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index],VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-
-    VK_CHECK(vkEndCommandBuffer(cmd));
-    */
-
-    _drawExtent.width = _drawImage._image_extent.width;
-    _drawExtent.height = _drawImage._image_extent.height;
-
-    VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
-
-    // transition our main draw image into general layout so we can write into it
+    // Transition our main draw image into general layout so we can write into it
     // we will overwrite it all so we dont care about what was the older layout
     vkutil::TransitionImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     DrawBackground(cmd);
 
-    //transition the draw image and the swapchain image into their correct transfer layouts
+    // Transition the draw image and the swapchain image into their correct transfer layouts
     vkutil::TransitionImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-    // execute a copy from the draw image into the swapchain
-    vkutil::CopyImageToImage(cmd, _drawImage._image, _swapchain_images[swapchain_image_index], _drawExtent, _swapchain_extent);
+    // Execute a copy from the draw image into the swapchain
+    vkutil::CopyImageToImage(cmd, _drawImage._image, _swapchain_images[swapchain_image_index], _draw_extent, _swapchain_extent);
 
-    // set swapchain image layout to Present so we can show it on the screen
+    // Set swapchain image layout to Present so we can show it on the screen
     vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-    //finalize the command buffer (we can no longer add commands, but it can now be executed)
+    // Finalize the command buffer (we can no longer add commands, but it can now be executed)
     VK_CHECK(vkEndCommandBuffer(cmd));
 
     // Prepare the submission to the queue:
@@ -336,13 +405,22 @@ void Engine::DrawBackground(VkCommandBuffer cmd)
 {
     // Make a clear-color from frame number. This will flash with a 120 frame period.
     VkClearColorValue clearValue;
-    float flash = std::abs(std::sin(_frame_number / 120.f));
+    float flash = std::abs(std::sin(static_cast<float>(_frame_number) / 120.f));
     clearValue = { { 0.0f, 0.0f, flash, 1.0f } };
 
     VkImageSubresourceRange clear_range = vkinit::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
 
-    //clear image
-    vkCmdClearColorImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clear_range);
+    // Clear image
+    //vkCmdClearColorImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clear_range);
+
+    // Bind the gradient drawing compute pipeline
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _gradient_pipeline);
+
+    // Bind the descriptor set containing the draw image for the compute pipeline
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _gradient_pipeline_layout, 0, 1, &_draw_image_descriptors, 0, nullptr);
+
+    // Execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
+    vkCmdDispatch(cmd, std::ceil(_draw_extent.width / 16.0), std::ceil(_draw_extent.height / 16.0), 1);
 }
 
 void Engine::Run()

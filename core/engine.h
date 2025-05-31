@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <vk_descriptors.h>
 #include <vk_types.h>
 
 constexpr unsigned int FRAME_OVERLAP = 2;
@@ -39,7 +40,6 @@ struct FrameData {
 
 class Engine {
 public:
-
 	bool _is_initialized{ false };
 	int _frame_number {0};
 	bool _stop_rendering{ false };
@@ -64,9 +64,15 @@ public:
 	VkQueue _graphics_queue;
 	uint32_t _graphics_queue_family;
 
+	DescriptorAllocator globalDescriptorAllocator;
+	VkDescriptorSet _draw_image_descriptors;
+	VkDescriptorSetLayout _draw_image_descriptor_layout;
+
 	// Draw resources
 	AllocatedImage _drawImage;
-	VkExtent2D _drawExtent;
+	VkExtent2D _draw_extent;
+	VkPipeline _gradient_pipeline;
+	VkPipelineLayout _gradient_pipeline_layout;
 
 	static Engine& Get();
 
@@ -90,6 +96,9 @@ private:
 	void InitSwapchain();
 	void InitCommands();
 	void InitSyncStructures();
+	void InitDescriptors();
+	void InitPipelines();
+	void InitBackgroundPipelines();
 
 	void CreateSwapchain(uint32_t width, uint32_t height);
 	void DestroySwapchain();
