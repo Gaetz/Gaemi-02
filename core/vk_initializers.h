@@ -9,13 +9,13 @@ VkCommandBufferAllocateInfo CommandBufferAllocateInfo(VkCommandPool pool, uint32
 //< init_cmd
 
 VkCommandBufferBeginInfo CommandBufferBeginInfo(VkCommandBufferUsageFlags flags = 0);
-VkCommandBufferSubmitInfo command_buffer_submit_info(VkCommandBuffer cmd);
+VkCommandBufferSubmitInfo CommandBufferSubmitInfo(VkCommandBuffer cmd);
 
 VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0);
 
 VkSemaphoreCreateInfo SemaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
 
-VkSubmitInfo2 submit_info(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* signalSemaphoreInfo,
+VkSubmitInfo2 SubmitInfo(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* signalSemaphoreInfo,
     VkSemaphoreSubmitInfo* waitSemaphoreInfo);
 VkPresentInfoKHR present_info();
 
@@ -24,7 +24,7 @@ VkRenderingAttachmentInfo attachment_info(VkImageView view, VkClearValue* clear,
 VkRenderingAttachmentInfo depth_attachment_info(VkImageView view,
     VkImageLayout layout /*= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/);
 
-VkRenderingInfo rendering_info(VkExtent2D renderExtent, VkRenderingAttachmentInfo* colorAttachment,
+VkRenderingInfo RenderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo* colorAttachment,
     VkRenderingAttachmentInfo* depthAttachment);
 
 VkImageSubresourceRange ImageSubresourceRange(VkImageAspectFlags aspectMask);

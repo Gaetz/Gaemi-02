@@ -76,7 +76,7 @@ VkSemaphoreSubmitInfo vkinit::semaphore_submit_info(VkPipelineStageFlags2 stageM
 	return submitInfo;
 }
 
-VkCommandBufferSubmitInfo vkinit::command_buffer_submit_info(VkCommandBuffer cmd)
+VkCommandBufferSubmitInfo vkinit::CommandBufferSubmitInfo(VkCommandBuffer cmd)
 {
 	VkCommandBufferSubmitInfo info{};
 	info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -87,7 +87,7 @@ VkCommandBufferSubmitInfo vkinit::command_buffer_submit_info(VkCommandBuffer cmd
 	return info;
 }
 
-VkSubmitInfo2 vkinit::submit_info(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* signalSemaphoreInfo,
+VkSubmitInfo2 vkinit::SubmitInfo(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* signalSemaphoreInfo,
     VkSemaphoreSubmitInfo* waitSemaphoreInfo)
 {
     VkSubmitInfo2 info = {};
@@ -159,7 +159,7 @@ VkRenderingAttachmentInfo vkinit::depth_attachment_info(
 }
 //< depth_info
 //> render_info
-VkRenderingInfo vkinit::rendering_info(VkExtent2D renderExtent, VkRenderingAttachmentInfo* colorAttachment,
+VkRenderingInfo vkinit::RenderingInfo(VkExtent2D renderExtent, VkRenderingAttachmentInfo* colorAttachment,
     VkRenderingAttachmentInfo* depthAttachment)
 {
     VkRenderingInfo renderInfo {};

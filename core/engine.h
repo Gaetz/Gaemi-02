@@ -74,6 +74,11 @@ public:
 	VkPipeline _gradient_pipeline;
 	VkPipelineLayout _gradient_pipeline_layout;
 
+	// Immediate submit structures
+	VkFence _immFence;
+	VkCommandBuffer _immCommandBuffer;
+	VkCommandPool _immCommandPool;
+
 	static Engine& Get();
 
 	//initializes everything in the engine
@@ -91,6 +96,8 @@ public:
 
 	FrameData& GetCurrentFrame() { return _frames[_frame_number % FRAME_OVERLAP]; };
 
+	void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+
 private:
 	void InitVulkan();
 	void InitSwapchain();
@@ -99,7 +106,10 @@ private:
 	void InitDescriptors();
 	void InitPipelines();
 	void InitBackgroundPipelines();
+	void InitImGUI();
 
 	void CreateSwapchain(uint32_t width, uint32_t height);
 	void DestroySwapchain();
+
+	void DrawImGUI(VkCommandBuffer cmd, VkImageView target_image_view) const;
 };
