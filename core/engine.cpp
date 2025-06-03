@@ -333,10 +333,12 @@ void Engine::InitBackgroundPipelines() {
     vkDestroyShaderModule(_device, sky_shader, nullptr);
 
     _main_deletion_queue.PushFunction([&]() {
-        //vkDestroyPipelineLayout(_device, sky.layout, nullptr);
-        vkDestroyPipeline(_device, sky.pipeline, nullptr);
-        vkDestroyPipeline(_device, gradient.pipeline, nullptr);
-        vkDestroyPipelineLayout(_device, gradient.layout, nullptr);
+        // Destroy each pipeline from background effects
+        for (const auto& effect : _background_effects)
+        {
+            vkDestroyPipeline(_device, effect.pipeline, nullptr);
+        }
+        vkDestroyPipelineLayout(_device, _background_effects[0].layout, nullptr);
     });
 }
 
