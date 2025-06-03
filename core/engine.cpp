@@ -281,10 +281,18 @@ void Engine::InitBackgroundPipelines()
     compute_layout.pSetLayouts = &_draw_image_descriptor_layout;
     compute_layout.setLayoutCount = 1;
 
+    VkPushConstantRange push_constant{};
+    push_constant.offset = 0;
+    push_constant.size = sizeof(ComputePushConstants) ;
+    push_constant.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    compute_layout.pPushConstantRanges = &push_constant;
+    compute_layout.pushConstantRangeCount = 1;
+
     VK_CHECK(vkCreatePipelineLayout(_device, &compute_layout, nullptr, &_gradient_pipeline_layout));
 
     VkShaderModule compute_draw_shader;
-    if (!vkutil::LoadShaderModule("../assets/shaders/gradient.comp.spv", _device, &compute_draw_shader))
+    if (!vkutil::LoadShaderModule("../assets/shaders/gradient_color.comp.spv", _device, &compute_draw_shader))
     {
         fmt::print("Error when building the compute shader \n");
     }
@@ -358,7 +366,7 @@ void Engine::InitImGUI()
 	init_info.ImageCount = 3;
 	init_info.UseDynamicRendering = true;
 
-	//dynamic rendering parameters for imgui to use
+	// Dynamic rendering parameters for imgui to use
 	init_info.PipelineRenderingCreateInfo = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
 	init_info.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
 	init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &_swapchain_image_format;
@@ -370,7 +378,7 @@ void Engine::InitImGUI()
 
 	ImGui_ImplVulkan_CreateFontsTexture();
 
-	// Add the destroy the imgui created structures
+	// Add destroy the imgui created structures
 	_main_deletion_queue.PushFunction([=]() {
 		ImGui_ImplVulkan_Shutdown();
 		vkDestroyDescriptorPool(_device, imguiPool, nullptr);
@@ -539,6 +547,11 @@ void Engine::DrawBackground(VkCommandBuffer cmd)
 
     // Bind the descriptor set containing the draw image for the compute pipeline
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, _gradient_pipeline_layout, 0, 1, &_draw_image_descriptors, 0, nullptr);
+
+    ComputePushConstants pc;
+    pc.data1 = glm::vec4(1, 0, 0, 1);
+    pc.data2 = glm::vec4(0, 0, 1, 1);
+    vkCmdPushConstants(cmd, _gradient_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePushConstants), &pc);
 
     // Execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
     vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(_draw_extent.width / 16.0)), static_cast<uint32_t>(std::ceil(_draw_extent.height / 16.0)), 1);

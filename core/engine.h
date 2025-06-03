@@ -38,6 +38,13 @@ struct FrameData {
 	DeletionQueue _deletion_queue;
 };
 
+struct ComputePushConstants {
+	glm::vec4 data1;
+	glm::vec4 data2;
+	glm::vec4 data3;
+	glm::vec4 data4;
+};
+
 class Engine {
 public:
 	bool _is_initialized{ false };
