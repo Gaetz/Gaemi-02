@@ -45,6 +45,14 @@ struct ComputePushConstants {
 	glm::vec4 data4;
 };
 
+struct ComputeEffect {
+	const char* name;
+	VkPipeline pipeline;
+	VkPipelineLayout layout;
+
+	ComputePushConstants data;
+};
+
 class Engine {
 public:
 	bool _is_initialized{ false };
@@ -78,8 +86,8 @@ public:
 	// Draw resources
 	AllocatedImage _drawImage;
 	VkExtent2D _draw_extent;
-	VkPipeline _gradient_pipeline;
-	VkPipelineLayout _gradient_pipeline_layout;
+	std::vector<ComputeEffect> _background_effects;
+	int _current_background_effect{0};
 
 	// Immediate submit structures
 	VkFence _immFence;
@@ -88,17 +96,17 @@ public:
 
 	static Engine& Get();
 
-	//initializes everything in the engine
+	// Initializes everything in the engine
 	void Init();
 
-	//shuts down the engine
+	// Shuts down the engine
 	void Clean();
 
-	//draw loop
+	// Draw loop
 	void Draw();
 	void DrawBackground(VkCommandBuffer cmd);
 
-	//run main loop
+	// Run main loop
 	void Run();
 
 	FrameData& GetCurrentFrame() { return _frames[_frame_number % FRAME_OVERLAP]; };
