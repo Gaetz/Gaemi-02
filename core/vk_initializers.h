@@ -19,7 +19,7 @@ VkSubmitInfo2 SubmitInfo(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* 
     VkSemaphoreSubmitInfo* waitSemaphoreInfo);
 VkPresentInfoKHR present_info();
 
-VkRenderingAttachmentInfo attachment_info(VkImageView view, VkClearValue* clear, VkImageLayout layout /*= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/);
+VkRenderingAttachmentInfo AttachmentInfo(VkImageView view, VkClearValue* clear, VkImageLayout layout /*= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/);
 
 VkRenderingAttachmentInfo depth_attachment_info(VkImageView view,
     VkImageLayout layout /*= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/);
@@ -42,7 +42,7 @@ VkDescriptorBufferInfo buffer_info(VkBuffer buffer, VkDeviceSize offset, VkDevic
 
 VkImageCreateInfo ImageCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
 VkImageViewCreateInfo ImageViewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
-VkPipelineLayoutCreateInfo pipeline_layout_create_info();
+VkPipelineLayoutCreateInfo PipelineLayoutCreateInfo();
 VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info(VkShaderStageFlagBits stage,
     VkShaderModule shaderModule,
     const char * entry = "main");

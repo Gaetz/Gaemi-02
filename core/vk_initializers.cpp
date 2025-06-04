@@ -123,7 +123,7 @@ VkPresentInfoKHR vkinit::present_info()
 }
 
 //> color_info
-VkRenderingAttachmentInfo vkinit::attachment_info(
+VkRenderingAttachmentInfo vkinit::AttachmentInfo(
     VkImageView view, VkClearValue* clear ,VkImageLayout layout /*= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/)
 {
     VkRenderingAttachmentInfo colorAttachment {};
@@ -304,7 +304,7 @@ VkImageViewCreateInfo vkinit::ImageViewCreateInfo(VkFormat format, VkImage image
     return info;
 }
 //< image_set
-VkPipelineLayoutCreateInfo vkinit::pipeline_layout_create_info()
+VkPipelineLayoutCreateInfo vkinit::PipelineLayoutCreateInfo()
 {
     VkPipelineLayoutCreateInfo info {};
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

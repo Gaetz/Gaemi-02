@@ -114,6 +114,9 @@ public:
 	void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 private:
+	VkPipelineLayout _triangle_pipeline_layout;
+	VkPipeline _triangle_pipeline;
+
 	void InitVulkan();
 	void InitSwapchain();
 	void InitCommands();
@@ -127,4 +130,8 @@ private:
 	void DestroySwapchain();
 
 	void DrawImGUI(VkCommandBuffer cmd, VkImageView target_image_view) const;
+	void DrawGeometry(VkCommandBuffer cmd) const;
+
+	void InitTrianglePipeline();
+
 };
