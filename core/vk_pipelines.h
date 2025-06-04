@@ -8,16 +8,16 @@ namespace vkutil {
 
 class PipelineBuilder {
 public:
-    std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
+    std::vector<VkPipelineShaderStageCreateInfo> _shader_stages;
 
-    VkPipelineInputAssemblyStateCreateInfo _inputAssembly;
+    VkPipelineInputAssemblyStateCreateInfo _input_assembly;
     VkPipelineRasterizationStateCreateInfo _rasterizer;
-    VkPipelineColorBlendAttachmentState _colorBlendAttachment;
+    VkPipelineColorBlendAttachmentState _color_blend_attachment;
     VkPipelineMultisampleStateCreateInfo _multisampling;
-    VkPipelineLayout _pipelineLayout;
-    VkPipelineDepthStencilStateCreateInfo _depthStencil;
-    VkPipelineRenderingCreateInfo _renderInfo;
-    VkFormat _colorAttachmentformat;
+    VkPipelineLayout _pipeline_layout;
+    VkPipelineDepthStencilStateCreateInfo _depth_stencil;
+    VkPipelineRenderingCreateInfo _render_info;
+    VkFormat _color_attachment_format;
 
     PipelineBuilder(){ Clear(); }
 
@@ -25,10 +25,10 @@ public:
     void Clear();
 
     VkPipeline BuildPipeline(VkDevice device);
-    void set_shaders(VkShaderModule vertexShader, VkShaderModule fragmentShader);
+    void SetShaders(VkShaderModule vertex_shader, VkShaderModule fragment_shader);
     void SetInputTopology(VkPrimitiveTopology topology);
     void SetPolygonMode(VkPolygonMode mode);
-    void SetCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);
+    void SetCullMode(VkCullModeFlags cull_mode, VkFrontFace front_face);
     void SetMultisamplingNone();
     void DisableBlending();
     void SetColorAttachmentFormat(VkFormat format);

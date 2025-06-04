@@ -514,9 +514,9 @@ void Engine::InitTrianglePipeline()
 
     PipelineBuilder pipeline_builder;
     // Use the triangle layout we created
-    pipeline_builder._pipelineLayout = _triangle_pipeline_layout;
+    pipeline_builder._pipeline_layout = _triangle_pipeline_layout;
     // Connecting the vertex and pixel shaders to the pipeline
-    pipeline_builder.set_shaders(triangle_vertex_shader, triangle_frag_shader);
+    pipeline_builder.SetShaders(triangle_vertex_shader, triangle_frag_shader);
     // It will draw triangles
     pipeline_builder.SetInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     // Filled triangles
