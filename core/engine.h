@@ -95,6 +95,8 @@ public:
 	VkExtent2D _draw_extent;
 	std::vector<ComputeEffect> _background_effects;
 	int _current_background_effect{0};
+	bool _resize_requested{ false };
+	float _render_scale{ 1.0f };
 
 	// Immediate submit structures
 	VkFence _immFence;
@@ -113,7 +115,7 @@ public:
 
 	void Run();
 
-	void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+	void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function) const;
 	GPUMeshBuffers UploadMeshToGpu(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 private:
@@ -124,10 +126,11 @@ private:
 	VkPipelineLayout _mesh_pipeline_layout;
 	VkPipeline _mesh_pipeline;
 
-	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+	std::vector<std::shared_ptr<MeshAsset>> _test_meshes;
 
 	void CreateSwapchain(uint32_t width, uint32_t height);
-	void DestroySwapchain();
+	void DestroySwapchain() const;
+	void ResizeSwapchain();
 	AllocatedBuffer CreateBuffer(size_t alloc_size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage) const;
 	void DestroyBuffer(const AllocatedBuffer& buffer) const;
 

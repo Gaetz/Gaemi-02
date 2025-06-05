@@ -33,12 +33,12 @@ void Engine::Init() {
 
     // We initialize SDL and create a window with it.
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN);
+    constexpr SDL_WindowFlags WINDOW_FLAGS = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     _window = SDL_CreateWindow(
         "Vulkan Engine",
         _window_extent.width,
         _window_extent.height,
-        window_flags);
+        WINDOW_FLAGS);
 
     // Initialize Vulkan
     InitVulkan();
@@ -54,7 +54,8 @@ void Engine::Init() {
     _is_initialized = true;
 }
 
-void Engine::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function) {
+void Engine::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function) const
+{
     VK_CHECK(vkResetFences(_device, 1, &_immFence));
     VK_CHECK(vkResetCommandBuffer(_immCommandBuffer, 0));
 
@@ -426,7 +427,8 @@ void Engine::InitImGUI() {
     });
 }
 
-void Engine::CreateSwapchain(const uint32_t width, const uint32_t height) {
+void Engine::CreateSwapchain(const uint32_t width, const uint32_t height)
+{
     vkb::SwapchainBuilder swapchain_builder{_chosen_GPU, _device, _surface};
 
     _swapchain_image_format = VK_FORMAT_B8G8R8A8_UNORM;
@@ -451,7 +453,8 @@ void Engine::CreateSwapchain(const uint32_t width, const uint32_t height) {
     _swapchain_image_views = vkb_swapchain.get_image_views().value();
 }
 
-void Engine::DestroySwapchain() {
+void Engine::DestroySwapchain() const
+{
     vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
     // destroy swapchain resources
@@ -459,6 +462,18 @@ void Engine::DestroySwapchain() {
     {
         vkDestroyImageView(_device, _swapchain_image_views[i], nullptr);
     }
+}
+
+void Engine::ResizeSwapchain()
+{
+    vkDeviceWaitIdle(_device);
+    DestroySwapchain();
+    int w, h;
+    SDL_GetWindowSize(_window, &w, &h);
+    _window_extent.width = w;
+    _window_extent.height = h;
+    CreateSwapchain(_window_extent.width, _window_extent.height);
+    _resize_requested = false;
 }
 
 AllocatedBuffer Engine::CreateBuffer(const size_t alloc_size, const VkBufferUsageFlags usage, const VmaMemoryUsage memory_usage) const
@@ -592,12 +607,12 @@ void Engine::DrawGeometry(VkCommandBuffer cmd) const
     projection[1][1] *= -1;
 
     GPUDrawPushConstants push_constants;
-    push_constants.vertex_buffer = testMeshes[2]->meshBuffers.vertex_buffer_address;
+    push_constants.vertex_buffer = _test_meshes[2]->meshBuffers.vertex_buffer_address;
     push_constants.world_matrix = projection * view;
 
     vkCmdPushConstants(cmd, _mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &push_constants);
-    vkCmdBindIndexBuffer(cmd, testMeshes[2]->meshBuffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdDrawIndexed(cmd, testMeshes[2]->surfaces[0].count, 1, testMeshes[2]->surfaces[0].startIndex, 0, 0);
+    vkCmdBindIndexBuffer(cmd, _test_meshes[2]->meshBuffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(cmd, _test_meshes[2]->surfaces[0].count, 1, _test_meshes[2]->surfaces[0].startIndex, 0, 0);
 
     vkCmdEndRendering(cmd);
 }
@@ -760,7 +775,7 @@ void Engine::InitDefaultData()
     });
     */
 
-    testMeshes = LoadGltfMeshes(this,"../assets/meshes/basicmesh.glb").value();
+    _test_meshes = LoadGltfMeshes(this,"../assets/meshes/basicmesh.glb").value();
 }
 
 GPUMeshBuffers Engine::UploadMeshToGpu(const std::span<uint32_t> indices, const std::span<Vertex> vertices)
@@ -832,7 +847,7 @@ void Engine::Clean() {
             vkDestroySemaphore(_device, _frames[i].swapchain_semaphore, nullptr);
         }
 
-        for (auto& mesh : testMeshes) {
+        for (auto& mesh : _test_meshes) {
             DestroyBuffer(mesh->meshBuffers.index_buffer);
             DestroyBuffer(mesh->meshBuffers.vertex_buffer);
         }
@@ -859,9 +874,11 @@ void Engine::Draw() {
 
     // Request image from the swapchain
     uint32_t swapchain_image_index;
-    VK_CHECK(
-        vkAcquireNextImageKHR(_device, _swapchain, 1000000000, GetCurrentFrame().swapchain_semaphore, nullptr, &
-            swapchain_image_index));
+    const VkResult e = vkAcquireNextImageKHR(_device, _swapchain, 1000000000, GetCurrentFrame().swapchain_semaphore, nullptr, &swapchain_image_index);
+    if (e == VK_ERROR_OUT_OF_DATE_KHR) {
+        _resize_requested = true;
+        return;
+    }
 
     // Now that we are sure that the commands finished executing, we can safely
     // reset the command buffer and restart recording commands
@@ -869,8 +886,8 @@ void Engine::Draw() {
     VK_CHECK(vkResetCommandBuffer(cmd, 0));
     const VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(
         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We will use this command buffer exactly on
-    _draw_extent.width = _draw_image.image_extent.width;
-    _draw_extent.height = _draw_image.image_extent.height;
+    _draw_extent.width = std::min(_swapchain_extent.width, _draw_image.image_extent.width) * _render_scale;
+    _draw_extent.height = std::min(_swapchain_extent.height, _draw_image.image_extent.height) * _render_scale;
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
     // Transition our main draw image into a general layout so we can write into it
@@ -935,7 +952,10 @@ void Engine::Draw() {
 
     // TODO: Check why suboptimal
     // VK_CHECK(vkQueuePresentKHR(_graphics_queue, &present_info));
-    vkQueuePresentKHR(_graphics_queue, &present_info);
+    VkResult present_result = vkQueuePresentKHR(_graphics_queue, &present_info);
+    if (present_result == VK_ERROR_OUT_OF_DATE_KHR) {
+        _resize_requested = true;
+    }
 
     // Increase the number of frames drawn
     _frame_number++;
@@ -960,13 +980,16 @@ void Engine::Run() {
             ImGui_ImplSDL3_ProcessEvent(&e);
         }
 
-
         // Do not draw if we are minimized
         if (_stop_rendering)
         {
             // Throttle the speed to avoid the endless spinning
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
+        }
+
+        if (_resize_requested) {
+            ResizeSwapchain();
         }
 
         // imgui new frame
@@ -976,6 +999,8 @@ void Engine::Run() {
 
         if (ImGui::Begin("background"))
         {
+            ImGui::SliderFloat("Render Scale",&_render_scale, 0.3f, 1.f);
+
             ComputeEffect& selected = _background_effects[_current_background_effect];
 
             ImGui::Text("Selected effect: ", selected.name);
