@@ -35,5 +35,6 @@ public:
     void SetDepthFormat(VkFormat format);
     void DisableDepthTest();
     void EnableDepthTest(bool depth_write_enable, VkCompareOp depth_compare_op);
-
+    void EnableBlendingAdditive();
+    void EnableBlendingAlphaBlend();
 };

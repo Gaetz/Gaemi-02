@@ -705,7 +705,7 @@ void Engine::InitMeshPipeline()
     // No multisampling
     pipeline_builder.SetMultisamplingNone();
     // No blending
-    pipeline_builder.DisableBlending();
+    pipeline_builder.EnableBlendingAdditive();
     // Setup depth testing
     pipeline_builder.EnableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL); // Depth goes from 1 to 0, so we want to test for greater or equal
 

@@ -210,3 +210,27 @@ void PipelineBuilder::EnableDepthTest(bool depth_write_enable, VkCompareOp depth
     _depth_stencil.minDepthBounds = 0.f;
     _depth_stencil.maxDepthBounds = 1.f;
 }
+
+void PipelineBuilder::EnableBlendingAdditive()
+{
+    _color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    _color_blend_attachment.blendEnable = VK_TRUE;
+    _color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    _color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    _color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+    _color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    _color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    _color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
+void PipelineBuilder::EnableBlendingAlphaBlend()
+{
+    _color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    _color_blend_attachment.blendEnable = VK_TRUE;
+    _color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    _color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    _color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+    _color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    _color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    _color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+}
