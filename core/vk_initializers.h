@@ -15,9 +15,9 @@ VkFenceCreateInfo FenceCreateInfo(VkFenceCreateFlags flags = 0);
 
 VkSemaphoreCreateInfo SemaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
 
-VkSubmitInfo2 SubmitInfo(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* signalSemaphoreInfo,
-    VkSemaphoreSubmitInfo* waitSemaphoreInfo);
-VkPresentInfoKHR present_info();
+VkSubmitInfo2 SubmitInfo(VkCommandBufferSubmitInfo* cmd, VkSemaphoreSubmitInfo* signal_semaphore_info,
+    VkSemaphoreSubmitInfo* wait_semaphore_info);
+VkPresentInfoKHR PresentInfo();
 
 VkRenderingAttachmentInfo AttachmentInfo(VkImageView view, VkClearValue* clear, VkImageLayout layout /*= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL*/);
 

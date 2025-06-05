@@ -5,12 +5,12 @@
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 
-struct DeletionQueue
+class DeletionQueue
 {
-	std::deque<std::function<void()>> deletors;
-
-	void PushFunction(std::function<void()>&& function) {
-		deletors.push_back(function);
+public:
+	void PushFunction(std::function<void()>&& function)
+	{
+		_deletors.push_back(function);
 	}
 
 	/**
@@ -20,22 +20,26 @@ struct DeletionQueue
 	 * a better implementation would be to store arrays of vulkan handles of various
 	 * types such as VkImage, VkBuffer, and so on. And then delete those from a loop.
 	 */
-	void Flush() {
+	void Flush()
+	{
 		// Reverse iterate the deletion queue to execute all the functions
-		for (auto it = deletors.rbegin(); it != deletors.rend(); ++it) {
+		for (auto it = _deletors.rbegin(); it != _deletors.rend(); ++it) {
 			(*it)(); //call functors
-		}
-
-		deletors.clear();
 	}
+
+		_deletors.clear();
+	}
+
+private:
+	std::deque<std::function<void()>> _deletors;
 };
 
 struct FrameData {
-	VkCommandPool _command_pool;
-	VkCommandBuffer _main_command_buffer;
-	VkSemaphore _swapchain_semaphore, _render_semaphore;
-	VkFence _render_fence;
-	DeletionQueue _deletion_queue;
+	VkCommandPool command_pool;
+	VkCommandBuffer main_command_buffer;
+	VkSemaphore swapchain_semaphore, render_semaphore;
+	VkFence render_fence;
+	DeletionQueue deletion_queue;
 };
 
 struct ComputePushConstants {
@@ -115,7 +119,7 @@ private:
 	VkPipelineLayout _mesh_pipeline_layout;
 	VkPipeline _mesh_pipeline;
 
-	GPUMeshBuffers rectangle;
+	GPUMeshBuffers _rectangle;
 
 	void CreateSwapchain(uint32_t width, uint32_t height);
 	void DestroySwapchain();

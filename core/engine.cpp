@@ -146,8 +146,8 @@ void Engine::InitSwapchain() {
         1
     };
 
-    _drawImage._image_format = VK_FORMAT_R16G16B16A16_SFLOAT; // hardcoding the draw format to 32 bit float
-    _drawImage._image_extent = draw_image_extent;
+    _drawImage.image_format = VK_FORMAT_R16G16B16A16_SFLOAT; // hardcoding the draw format to 32 bit float
+    _drawImage.image_extent = draw_image_extent;
 
     VkImageUsageFlags drawImageUsages{};
     drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -155,7 +155,7 @@ void Engine::InitSwapchain() {
     drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
     drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    VkImageCreateInfo rimg_info = vkinit::ImageCreateInfo(_drawImage._image_format, drawImageUsages, draw_image_extent);
+    VkImageCreateInfo rimg_info = vkinit::ImageCreateInfo(_drawImage.image_format, drawImageUsages, draw_image_extent);
 
     // For the draw image, we want to allocate it from gpu local memory
     VmaAllocationCreateInfo rimg_allocinfo = {};
@@ -163,16 +163,16 @@ void Engine::InitSwapchain() {
     rimg_allocinfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     // Allocate and create the image
-    vmaCreateImage(_allocator, &rimg_info, &rimg_allocinfo, &_drawImage._image, &_drawImage._allocation, nullptr);
+    vmaCreateImage(_allocator, &rimg_info, &rimg_allocinfo, &_drawImage.image, &_drawImage.allocation, nullptr);
 
     // Build a image-view for the draw image to use for rendering
-    VkImageViewCreateInfo rview_info = vkinit::ImageViewCreateInfo(_drawImage._image_format, _drawImage._image,
+    VkImageViewCreateInfo rview_info = vkinit::ImageViewCreateInfo(_drawImage.image_format, _drawImage.image,
                                                                    VK_IMAGE_ASPECT_COLOR_BIT);
-    VK_CHECK(vkCreateImageView(_device, &rview_info, nullptr, &_drawImage._image_view));
+    VK_CHECK(vkCreateImageView(_device, &rview_info, nullptr, &_drawImage.image_view));
 
     _main_deletion_queue.PushFunction([=]() {
-        vkDestroyImageView(_device, _drawImage._image_view, nullptr);
-        vmaDestroyImage(_allocator, _drawImage._image, _drawImage._allocation);
+        vkDestroyImageView(_device, _drawImage.image_view, nullptr);
+        vmaDestroyImage(_allocator, _drawImage.image, _drawImage.allocation);
     });
 }
 
@@ -184,12 +184,12 @@ void Engine::InitCommands() {
 
     for (int i = 0; i < FRAME_OVERLAP; i++)
     {
-        VK_CHECK(vkCreateCommandPool(_device, &command_pool_info, nullptr, &_frames[i]._command_pool));
+        VK_CHECK(vkCreateCommandPool(_device, &command_pool_info, nullptr, &_frames[i].command_pool));
 
         // Allocate the default command buffer that we will use for rendering
-        VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::CommandBufferAllocateInfo(_frames[i]._command_pool, 1);
+        VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::CommandBufferAllocateInfo(_frames[i].command_pool, 1);
 
-        VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frames[i]._main_command_buffer));
+        VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_frames[i].main_command_buffer));
     }
 
     // ImGUI command pool
@@ -210,10 +210,10 @@ void Engine::InitSyncStructures() {
 
     for (int i = 0; i < FRAME_OVERLAP; i++)
     {
-        VK_CHECK(vkCreateFence(_device, &fence_create_info, nullptr, &_frames[i]._render_fence));
+        VK_CHECK(vkCreateFence(_device, &fence_create_info, nullptr, &_frames[i].render_fence));
 
-        VK_CHECK(vkCreateSemaphore(_device, &semaphore_create_info, nullptr, &_frames[i]._swapchain_semaphore));
-        VK_CHECK(vkCreateSemaphore(_device, &semaphore_create_info, nullptr, &_frames[i]._render_semaphore));
+        VK_CHECK(vkCreateSemaphore(_device, &semaphore_create_info, nullptr, &_frames[i].swapchain_semaphore));
+        VK_CHECK(vkCreateSemaphore(_device, &semaphore_create_info, nullptr, &_frames[i].render_semaphore));
     }
 
     // Fence for immediate submit
@@ -242,7 +242,7 @@ void Engine::InitDescriptors() {
 
     VkDescriptorImageInfo img_info{};
     img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    img_info.imageView = _drawImage._image_view;
+    img_info.imageView = _drawImage.image_view;
 
     VkWriteDescriptorSet draw_image_write = {};
     draw_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -462,15 +462,15 @@ AllocatedBuffer Engine::CreateBuffer(const size_t alloc_size, const VkBufferUsag
     vma_alloc_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
     AllocatedBuffer newBuffer;
 
-    VK_CHECK(vmaCreateBuffer(_allocator, &buffer_info, &vma_alloc_info, &newBuffer._buffer, &newBuffer._allocation,
-        &newBuffer._info));
+    VK_CHECK(vmaCreateBuffer(_allocator, &buffer_info, &vma_alloc_info, &newBuffer.buffer, &newBuffer.allocation,
+        &newBuffer.info));
 
     return newBuffer;
 }
 
 void Engine::DestroyBuffer(const AllocatedBuffer& buffer) const
 {
-    vmaDestroyBuffer(_allocator, buffer._buffer, buffer._allocation);
+    vmaDestroyBuffer(_allocator, buffer.buffer, buffer.allocation);
 }
 
 void Engine::DrawImGUI(const VkCommandBuffer cmd, const VkImageView target_image_view) const {
@@ -486,7 +486,7 @@ void Engine::DrawImGUI(const VkCommandBuffer cmd, const VkImageView target_image
 void Engine::DrawGeometry(VkCommandBuffer cmd) const
 {
     // Begin a render pass connected to our draw image, not to the swapchain image
-    VkRenderingAttachmentInfo color_attachment = vkinit::AttachmentInfo(_drawImage._image_view, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkRenderingAttachmentInfo color_attachment = vkinit::AttachmentInfo(_drawImage.image_view, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     const VkRenderingInfo render_info = vkinit::RenderingInfo(_draw_extent, &color_attachment, nullptr);
     vkCmdBeginRendering(cmd, &render_info);
@@ -515,11 +515,11 @@ void Engine::DrawGeometry(VkCommandBuffer cmd) const
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _mesh_pipeline);
 
     GPUDrawPushConstants push_constants;
-    push_constants._world_matrix = glm::mat4{ 1.f };
-    push_constants._vertex_buffer = rectangle._vertex_buffer_address;
+    push_constants.world_matrix = glm::mat4{ 1.f };
+    push_constants.vertex_buffer = _rectangle.vertex_buffer_address;
 
     vkCmdPushConstants(cmd, _mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &push_constants);
-    vkCmdBindIndexBuffer(cmd, rectangle._index_buffer._buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(cmd, _rectangle.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
     vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
 
@@ -568,7 +568,7 @@ void Engine::InitTrianglePipeline()
     pipeline_builder.DisableDepthTest();
 
     // Connect the image format we will draw into, from draw image
-    pipeline_builder.SetColorAttachmentFormat(_drawImage._image_format);
+    pipeline_builder.SetColorAttachmentFormat(_drawImage.image_format);
     pipeline_builder.SetDepthFormat(VK_FORMAT_UNDEFINED);
 
     // Finally build the pipeline
@@ -632,7 +632,7 @@ void Engine::InitMeshPipeline()
     pipeline_builder.DisableDepthTest();
 
     // Connect the image format we will draw into, from draw image
-    pipeline_builder.SetColorAttachmentFormat(_drawImage._image_format);
+    pipeline_builder.SetColorAttachmentFormat(_drawImage.image_format);
     pipeline_builder.SetDepthFormat(VK_FORMAT_UNDEFINED);
 
     // Finally, build the pipeline
@@ -651,15 +651,15 @@ void Engine::InitDefaultData()
 {
     std::array<Vertex,4> rect_vertices;
 
-    rect_vertices[0]._position = {0.5,-0.5, 0};
-    rect_vertices[1]._position = {0.5,0.5, 0};
-    rect_vertices[2]._position = {-0.5,-0.5, 0};
-    rect_vertices[3]._position = {-0.5,0.5, 0};
+    rect_vertices[0].position = {0.5,-0.5, 0};
+    rect_vertices[1].position = {0.5,0.5, 0};
+    rect_vertices[2].position = {-0.5,-0.5, 0};
+    rect_vertices[3].position = {-0.5,0.5, 0};
 
-    rect_vertices[0]._color = {0,0, 0,1};
-    rect_vertices[1]._color = { 0.5,0.5,0.5 ,1};
-    rect_vertices[2]._color = { 1,0, 0,1 };
-    rect_vertices[3]._color = { 0,1, 0,1 };
+    rect_vertices[0].color = {0,0, 0,1};
+    rect_vertices[1].color = { 0.5,0.5,0.5 ,1};
+    rect_vertices[2].color = { 1,0, 0,1 };
+    rect_vertices[3].color = { 0,1, 0,1 };
 
     std::array<uint32_t,6> rect_indices;
 
@@ -671,12 +671,12 @@ void Engine::InitDefaultData()
     rect_indices[4] = 1;
     rect_indices[5] = 3;
 
-    rectangle = UploadMeshToGpu(rect_indices, rect_vertices);
+    _rectangle = UploadMeshToGpu(rect_indices, rect_vertices);
 
     //delete the rectangle data on engine shutdown
     _main_deletion_queue.PushFunction([&](){
-        DestroyBuffer(rectangle._index_buffer);
-        DestroyBuffer(rectangle._vertex_buffer);
+        DestroyBuffer(_rectangle.index_buffer);
+        DestroyBuffer(_rectangle.vertex_buffer);
     });
 }
 
@@ -688,15 +688,15 @@ GPUMeshBuffers Engine::UploadMeshToGpu(const std::span<uint32_t> indices, const 
     GPUMeshBuffers newSurface;
 
     // Create vertex buffer
-    newSurface._vertex_buffer = CreateBuffer(vertex_buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+    newSurface.vertex_buffer = CreateBuffer(vertex_buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         VMA_MEMORY_USAGE_GPU_ONLY);
 
     // Find the address of the vertex buffer
-    const VkBufferDeviceAddressInfo device_address_info{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = newSurface._vertex_buffer._buffer };
-    newSurface._vertex_buffer_address = vkGetBufferDeviceAddress(_device, &device_address_info);
+    const VkBufferDeviceAddressInfo device_address_info{ .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = newSurface.vertex_buffer.buffer };
+    newSurface.vertex_buffer_address = vkGetBufferDeviceAddress(_device, &device_address_info);
 
     // Create index buffer
-    newSurface._index_buffer = CreateBuffer(index_buffer_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    newSurface.index_buffer = CreateBuffer(index_buffer_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VMA_MEMORY_USAGE_GPU_ONLY);
 
     // Transfer data through staging buffer
@@ -707,7 +707,7 @@ GPUMeshBuffers Engine::UploadMeshToGpu(const std::span<uint32_t> indices, const 
      */
     const AllocatedBuffer staging = CreateBuffer(vertex_buffer_size + index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
-    void* data = staging._allocation->GetMappedData();
+    void* data = staging.allocation->GetMappedData();
     // copy vertex buffer
     memcpy(data, vertices.data(), vertex_buffer_size);
     // copy index buffer
@@ -719,14 +719,14 @@ GPUMeshBuffers Engine::UploadMeshToGpu(const std::span<uint32_t> indices, const 
         vertexCopy.srcOffset = 0;
         vertexCopy.size = vertex_buffer_size;
 
-        vkCmdCopyBuffer(cmd, staging._buffer, newSurface._vertex_buffer._buffer, 1, &vertexCopy);
+        vkCmdCopyBuffer(cmd, staging.buffer, newSurface.vertex_buffer.buffer, 1, &vertexCopy);
 
         VkBufferCopy indexCopy{ 0 };
         indexCopy.dstOffset = 0;
         indexCopy.srcOffset = vertex_buffer_size;
         indexCopy.size = index_buffer_size;
 
-        vkCmdCopyBuffer(cmd, staging._buffer, newSurface._index_buffer._buffer, 1, &indexCopy);
+        vkCmdCopyBuffer(cmd, staging.buffer, newSurface.index_buffer.buffer, 1, &indexCopy);
     });
 
     DestroyBuffer(staging);
@@ -741,12 +741,12 @@ void Engine::Clean() {
         for (int i = 0; i < FRAME_OVERLAP; i++)
         {
             // Already written from before
-            vkDestroyCommandPool(_device, _frames[i]._command_pool, nullptr);
+            vkDestroyCommandPool(_device, _frames[i].command_pool, nullptr);
 
             // Destroy sync objects
-            vkDestroyFence(_device, _frames[i]._render_fence, nullptr);
-            vkDestroySemaphore(_device, _frames[i]._render_semaphore, nullptr);
-            vkDestroySemaphore(_device, _frames[i]._swapchain_semaphore, nullptr);
+            vkDestroyFence(_device, _frames[i].render_fence, nullptr);
+            vkDestroySemaphore(_device, _frames[i].render_semaphore, nullptr);
+            vkDestroySemaphore(_device, _frames[i].swapchain_semaphore, nullptr);
         }
 
         _main_deletion_queue.Flush();
@@ -765,44 +765,44 @@ void Engine::Clean() {
 
 void Engine::Draw() {
     // Wait until the gpu has finished rendering the last frame. Timeout of 1 second
-    VK_CHECK(vkWaitForFences(_device, 1, &GetCurrentFrame()._render_fence, true, 1000000000));
-    GetCurrentFrame()._deletion_queue.Flush();
-    VK_CHECK(vkResetFences(_device, 1, &GetCurrentFrame()._render_fence));
+    VK_CHECK(vkWaitForFences(_device, 1, &GetCurrentFrame().render_fence, true, 1000000000));
+    GetCurrentFrame().deletion_queue.Flush();
+    VK_CHECK(vkResetFences(_device, 1, &GetCurrentFrame().render_fence));
 
     // Request image from the swapchain
     uint32_t swapchain_image_index;
     VK_CHECK(
-        vkAcquireNextImageKHR(_device, _swapchain, 1000000000, GetCurrentFrame()._swapchain_semaphore, nullptr, &
+        vkAcquireNextImageKHR(_device, _swapchain, 1000000000, GetCurrentFrame().swapchain_semaphore, nullptr, &
             swapchain_image_index));
 
     // Now that we are sure that the commands finished executing, we can safely
     // reset the command buffer and restart recording commands
-    const VkCommandBuffer cmd = GetCurrentFrame()._main_command_buffer;
+    const VkCommandBuffer cmd = GetCurrentFrame().main_command_buffer;
     VK_CHECK(vkResetCommandBuffer(cmd, 0));
     const VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(
         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We will use this command buffer exactly on
-    _draw_extent.width = _drawImage._image_extent.width;
-    _draw_extent.height = _drawImage._image_extent.height;
+    _draw_extent.width = _drawImage.image_extent.width;
+    _draw_extent.height = _drawImage.image_extent.height;
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
     // Transition our main draw image into a general layout so we can write into it
     // we will overwrite it all so we don't care about what was the older layout
-    vkutil::TransitionImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    vkutil::TransitionImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     DrawBackground(cmd);
 
     // Transition the draw image into a color attachment layout so we can render into it
-    vkutil::TransitionImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    vkutil::TransitionImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     DrawGeometry(cmd);
 
     // Transition the draw image and the swapchain image into their correct transfer layouts
-    vkutil::TransitionImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    vkutil::TransitionImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_UNDEFINED,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // Execute a copy from the draw image into the swapchain
-    vkutil::CopyImageToImage(cmd, _drawImage._image, _swapchain_images[swapchain_image_index], _draw_extent,
+    vkutil::CopyImageToImage(cmd, _drawImage.image, _swapchain_images[swapchain_image_index], _draw_extent,
                              _swapchain_extent);
 
     // Draw imgui into the swapchain image
@@ -821,15 +821,15 @@ void Engine::Draw() {
 
     VkCommandBufferSubmitInfo cmd_info = vkinit::CommandBufferSubmitInfo(cmd);
     VkSemaphoreSubmitInfo wait_info = vkinit::semaphore_submit_info(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR,
-                                                                    GetCurrentFrame()._swapchain_semaphore);
+                                                                    GetCurrentFrame().swapchain_semaphore);
     VkSemaphoreSubmitInfo signal_info = vkinit::semaphore_submit_info(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
-                                                                      GetCurrentFrame()._render_semaphore);
+                                                                      GetCurrentFrame().render_semaphore);
 
     const VkSubmitInfo2 submit = vkinit::SubmitInfo(&cmd_info, &signal_info, &wait_info);
 
     // Submit command buffer to the queue and execute it.
     // _render_fence will now block until the graphic commands finish execution
-    VK_CHECK(vkQueueSubmit2(_graphics_queue, 1, &submit, GetCurrentFrame()._render_fence));
+    VK_CHECK(vkQueueSubmit2(_graphics_queue, 1, &submit, GetCurrentFrame().render_fence));
 
     // Prepare present
     // This will put the image we just rendered to into the visible window.
@@ -840,7 +840,7 @@ void Engine::Draw() {
     present_info.pNext = nullptr;
     present_info.pSwapchains = &_swapchain;
     present_info.swapchainCount = 1;
-    present_info.pWaitSemaphores = &GetCurrentFrame()._render_semaphore;
+    present_info.pWaitSemaphores = &GetCurrentFrame().render_semaphore;
     present_info.waitSemaphoreCount = 1;
     present_info.pImageIndices = &swapchain_image_index;
 

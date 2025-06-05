@@ -2,23 +2,25 @@
 
 #include <vk_types.h>
 
-struct DescriptorLayoutBuilder {
-
-    std::vector<VkDescriptorSetLayoutBinding> bindings;
+class DescriptorLayoutBuilder
+{
+public:
+    std::vector<VkDescriptorSetLayoutBinding> _bindings;
 
     void AddBinding(uint32_t binding, VkDescriptorType type);
     void Clear();
     VkDescriptorSetLayout Build(VkDevice device, VkShaderStageFlags shader_stages, void* pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0);
 };
 
-struct DescriptorAllocator {
-
+class DescriptorAllocator
+{
+public:
     struct PoolSizeRatio{
         VkDescriptorType type;
         float ratio;
     };
 
-    VkDescriptorPool pool;
+    VkDescriptorPool _pool;
 
     void InitPool(VkDevice device, uint32_t max_sets, std::span<PoolSizeRatio> pool_ratios);
     void ClearDescriptors(VkDevice device);

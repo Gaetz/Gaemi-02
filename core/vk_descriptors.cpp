@@ -7,19 +7,19 @@ void DescriptorLayoutBuilder::AddBinding(const uint32_t binding, const VkDescrip
     new_bind.descriptorCount = 1;
     new_bind.descriptorType = type;
 
-    bindings.push_back(new_bind);
+    _bindings.push_back(new_bind);
 }
 
 void DescriptorLayoutBuilder::Clear()
 {
-    bindings.clear();
+    _bindings.clear();
 }
 
 VkDescriptorSetLayout DescriptorLayoutBuilder::Build(const VkDevice device, const VkShaderStageFlags shader_stages,
                                                      void* pNext,
                                                      const VkDescriptorSetLayoutCreateFlags flags)
 {
-    for (auto& b : bindings)
+    for (auto& b : _bindings)
     {
         b.stageFlags |= shader_stages;
     }
@@ -27,8 +27,8 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build(const VkDevice device, cons
     VkDescriptorSetLayoutCreateInfo info = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
     info.pNext = pNext;
 
-    info.pBindings = bindings.data();
-    info.bindingCount = static_cast<uint32_t>(bindings.size());
+    info.pBindings = _bindings.data();
+    info.bindingCount = static_cast<uint32_t>(_bindings.size());
     info.flags = flags;
 
     VkDescriptorSetLayout set;
@@ -53,24 +53,24 @@ void DescriptorAllocator::InitPool(VkDevice device, const uint32_t max_sets, con
     pool_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
     pool_info.pPoolSizes = pool_sizes.data();
 
-    vkCreateDescriptorPool(device, &pool_info, nullptr, &pool);
+    vkCreateDescriptorPool(device, &pool_info, nullptr, &_pool);
 }
 
 void DescriptorAllocator::ClearDescriptors(VkDevice device)
 {
-    vkResetDescriptorPool(device, pool, 0);
+    vkResetDescriptorPool(device, _pool, 0);
 }
 
 void DescriptorAllocator::DestroyPool(VkDevice device)
 {
-    vkDestroyDescriptorPool(device, pool,nullptr);
+    vkDestroyDescriptorPool(device, _pool,nullptr);
 }
 
 VkDescriptorSet DescriptorAllocator::Allocate(VkDevice device, VkDescriptorSetLayout layout)
 {
     VkDescriptorSetAllocateInfo alloc_info = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
     alloc_info.pNext = nullptr;
-    alloc_info.descriptorPool = pool;
+    alloc_info.descriptorPool = _pool;
     alloc_info.descriptorSetCount = 1;
     alloc_info.pSetLayouts = &layout;
 
