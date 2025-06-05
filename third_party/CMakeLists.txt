@@ -10,11 +10,18 @@ add_subdirectory(fastgltf)
 add_subdirectory(fmt EXCLUDE_FROM_ALL)
 add_subdirectory(SDL EXCLUDE_FROM_ALL)
 
+set_property(TARGET vkbootstrap PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET fastgltf PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET fmt PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET stb_image PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET vma PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_property(TARGET glm PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_sources(vkbootstrap PRIVATE 
   vkbootstrap/VkBootstrap.h
   vkbootstrap/VkBootstrap.cpp
   )
-
+set_property(TARGET vkbootstrap PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(vkbootstrap PUBLIC vkbootstrap)
 target_link_libraries(vkbootstrap PUBLIC Vulkan::Vulkan $<$<BOOL:UNIX>:${CMAKE_DL_LIBS}>)
 set_property(TARGET vkbootstrap PROPERTY CXX_STANDARD 20)
@@ -46,7 +53,7 @@ target_sources(imgui PRIVATE
   imgui/imgui_impl_vulkan.cpp
   imgui/imgui_impl_sdl3.cpp
   )
-
+set_property(TARGET imgui PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(imgui PUBLIC Vulkan::Vulkan SDL3::SDL3)
 
 target_include_directories(stb_image INTERFACE stb_image)

@@ -452,8 +452,10 @@ endif()
 # Make sure SDL3::SDL3 always exists
 if(TARGET SDL3::SDL3-shared)
   add_library(SDL3::SDL3 ALIAS SDL3-shared)
+  set_property(TARGET SDL3-shared PROPERTY POSITION_INDEPENDENT_CODE ON)
 else()
   add_library(SDL3::SDL3 ALIAS SDL3-static)
+  set_property(TARGET SDL3-static PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
 sdl_pc_link_options("-lSDL3")

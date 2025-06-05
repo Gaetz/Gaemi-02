@@ -24,7 +24,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/compiler_flags.cmake)
 
 if (FASTGLTF_DOWNLOAD_SIMDJSON)
     # Download and configure simdjson
-    set(SIMDJSON_TARGET_VERSION "3.3.0")
+    set(SIMDJSON_TARGET_VERSION "3.13.0")
     set(SIMDJSON_DL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/simdjson")
     file(MAKE_DIRECTORY ${SIMDJSON_DL_DIR})
 
@@ -55,6 +55,7 @@ if (FASTGLTF_DOWNLOAD_SIMDJSON)
     endif()
 
     add_library(fastgltf_simdjson ${SIMDJSON_HEADER_FILE} ${SIMDJSON_SOURCE_FILE})
+    set_target_properties(fastgltf_simdjson PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_compile_features(fastgltf_simdjson PRIVATE cxx_std_17)
     target_include_directories(fastgltf_simdjson PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/deps/simdjson> $<INSTALL_INTERFACE:include>)
     fastgltf_compiler_flags(fastgltf_simdjson)
@@ -87,6 +88,7 @@ add_library(fastgltf
     "src/fastgltf.cpp" "src/base64.cpp"
     "include/fastgltf/base64.hpp" "include/fastgltf/glm_element_traits.hpp" "include/fastgltf/parser.hpp" "include/fastgltf/tools.hpp" "include/fastgltf/types.hpp" "include/fastgltf/util.hpp")
 add_library(fastgltf::fastgltf ALIAS fastgltf)
+set_target_properties(fastgltf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 fastgltf_compiler_flags(fastgltf)
 fastgltf_enable_debug_inlining(fastgltf)
