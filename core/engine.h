@@ -95,27 +95,32 @@ public:
 	VkCommandPool _immCommandPool;
 
 	static Engine& Get();
+	FrameData& GetCurrentFrame() { return _frames[_frame_number % FRAME_OVERLAP]; };
 
-	// Initializes everything in the engine
 	void Init();
-
-	// Shuts down the engine
 	void Clean();
 
 	// Draw loop
 	void Draw();
 	void DrawBackground(VkCommandBuffer cmd);
 
-	// Run main loop
 	void Run();
-
-	FrameData& GetCurrentFrame() { return _frames[_frame_number % FRAME_OVERLAP]; };
 
 	void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 private:
 	VkPipelineLayout _triangle_pipeline_layout;
 	VkPipeline _triangle_pipeline;
+
+	VkPipelineLayout _mesh_pipeline_layout;
+	VkPipeline _mesh_pipeline;
+
+	GPUMeshBuffers rectangle;
+
+	void CreateSwapchain(uint32_t width, uint32_t height);
+	void DestroySwapchain();
+	AllocatedBuffer CreateBuffer(size_t alloc_size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage) const;
+	void DestroyBuffer(const AllocatedBuffer& buffer) const;
 
 	void InitVulkan();
 	void InitSwapchain();
@@ -126,12 +131,12 @@ private:
 	void InitBackgroundPipelines();
 	void InitImGUI();
 
-	void CreateSwapchain(uint32_t width, uint32_t height);
-	void DestroySwapchain();
-
 	void DrawImGUI(VkCommandBuffer cmd, VkImageView target_image_view) const;
 	void DrawGeometry(VkCommandBuffer cmd) const;
 
 	void InitTrianglePipeline();
+	void InitMeshPipeline();
+	void InitDefaultData();
+	GPUMeshBuffers UploadMeshToGpu(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 };
