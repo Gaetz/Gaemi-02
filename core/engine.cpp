@@ -933,7 +933,9 @@ void Engine::Draw() {
     present_info.waitSemaphoreCount = 1;
     present_info.pImageIndices = &swapchain_image_index;
 
-    VK_CHECK(vkQueuePresentKHR(_graphics_queue, &present_info));
+    // TODO: Check why suboptimal
+    // VK_CHECK(vkQueuePresentKHR(_graphics_queue, &present_info));
+    vkQueuePresentKHR(_graphics_queue, &present_info);
 
     // Increase the number of frames drawn
     _frame_number++;
