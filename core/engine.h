@@ -3,6 +3,8 @@
 #include <vk_descriptors.h>
 #include <vk_types.h>
 
+#include "vk_loader.h"
+
 constexpr unsigned int FRAME_OVERLAP = 2;
 
 class DeletionQueue
@@ -88,7 +90,8 @@ public:
 	VkDescriptorSetLayout _draw_image_descriptor_layout;
 
 	// Draw resources
-	AllocatedImage _drawImage;
+	AllocatedImage _draw_image;
+	AllocatedImage _depth_image;
 	VkExtent2D _draw_extent;
 	std::vector<ComputeEffect> _background_effects;
 	int _current_background_effect{0};
@@ -111,15 +114,17 @@ public:
 	void Run();
 
 	void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+	GPUMeshBuffers UploadMeshToGpu(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 private:
-	VkPipelineLayout _triangle_pipeline_layout;
-	VkPipeline _triangle_pipeline;
+	//VkPipelineLayout _triangle_pipeline_layout;
+	//VkPipeline _triangle_pipeline;
+	//GPUMeshBuffers _rectangle;
 
 	VkPipelineLayout _mesh_pipeline_layout;
 	VkPipeline _mesh_pipeline;
 
-	GPUMeshBuffers _rectangle;
+	std::vector<std::shared_ptr<MeshAsset>> testMeshes;
 
 	void CreateSwapchain(uint32_t width, uint32_t height);
 	void DestroySwapchain();
@@ -138,9 +143,8 @@ private:
 	void DrawImGUI(VkCommandBuffer cmd, VkImageView target_image_view) const;
 	void DrawGeometry(VkCommandBuffer cmd) const;
 
-	void InitTrianglePipeline();
+	//void InitTrianglePipeline();
 	void InitMeshPipeline();
 	void InitDefaultData();
-	GPUMeshBuffers UploadMeshToGpu(std::span<uint32_t> indices, std::span<Vertex> vertices);
 
 };

@@ -20,6 +20,8 @@
 #include <thread>
 #include <vk_pipelines.h>
 
+#include <glm/gtx/transform.hpp>
+
 Engine* loaded_engine = nullptr;
 
 Engine& Engine::Get() { return *loaded_engine; }
@@ -145,34 +147,44 @@ void Engine::InitSwapchain() {
         _window_extent.height,
         1
     };
+    _draw_image.image_format = VK_FORMAT_R16G16B16A16_SFLOAT; // hardcoding the draw format to 32 bit float
+    _draw_image.image_extent = draw_image_extent;
 
-    _drawImage.image_format = VK_FORMAT_R16G16B16A16_SFLOAT; // hardcoding the draw format to 32 bit float
-    _drawImage.image_extent = draw_image_extent;
-
-    VkImageUsageFlags drawImageUsages{};
-    drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
-    drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    VkImageCreateInfo rimg_info = vkinit::ImageCreateInfo(_drawImage.image_format, drawImageUsages, draw_image_extent);
+    VkImageUsageFlags draw_image_usages{};
+    draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    draw_image_usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    draw_image_usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+    draw_image_usages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    VkImageCreateInfo rimg_info = vkinit::ImageCreateInfo(_draw_image.image_format, draw_image_usages, draw_image_extent);
 
     // For the draw image, we want to allocate it from gpu local memory
     VmaAllocationCreateInfo rimg_allocinfo = {};
     rimg_allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
     rimg_allocinfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    // Allocate and create the image
-    vmaCreateImage(_allocator, &rimg_info, &rimg_allocinfo, &_drawImage.image, &_drawImage.allocation, nullptr);
-
-    // Build a image-view for the draw image to use for rendering
-    VkImageViewCreateInfo rview_info = vkinit::ImageViewCreateInfo(_drawImage.image_format, _drawImage.image,
+    vmaCreateImage(_allocator, &rimg_info, &rimg_allocinfo, &_draw_image.image, &_draw_image.allocation, nullptr);
+    VkImageViewCreateInfo rview_info = vkinit::ImageViewCreateInfo(_draw_image.image_format, _draw_image.image,
                                                                    VK_IMAGE_ASPECT_COLOR_BIT);
-    VK_CHECK(vkCreateImageView(_device, &rview_info, nullptr, &_drawImage.image_view));
+    VK_CHECK(vkCreateImageView(_device, &rview_info, nullptr, &_draw_image.image_view));
 
+    // Depth image
+    _depth_image.image_format = VK_FORMAT_D32_SFLOAT;
+    _depth_image.image_extent = draw_image_extent;
+    VkImageUsageFlags depth_image_usages{};
+    depth_image_usages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    VkImageCreateInfo dimg_info = vkinit::ImageCreateInfo(_depth_image.image_format, depth_image_usages, draw_image_extent);
+    vmaCreateImage(_allocator, &dimg_info, &rimg_allocinfo, &_depth_image.image, &_depth_image.allocation, nullptr);
+    VkImageViewCreateInfo dview_info = vkinit::ImageViewCreateInfo(_depth_image.image_format, _depth_image.image, VK_IMAGE_ASPECT_DEPTH_BIT);
+    VK_CHECK(vkCreateImageView(_device, &dview_info, nullptr, &_depth_image.image_view));
+
+    // Clean
     _main_deletion_queue.PushFunction([=]() {
-        vkDestroyImageView(_device, _drawImage.image_view, nullptr);
-        vmaDestroyImage(_allocator, _drawImage.image, _drawImage.allocation);
+        vkDestroyImageView(_device, _draw_image.image_view, nullptr);
+        vmaDestroyImage(_allocator, _draw_image.image, _draw_image.allocation);
+
+        vkDestroyImageView(_device, _depth_image.image_view, nullptr);
+        vmaDestroyImage(_allocator, _depth_image.image, _depth_image.allocation);
     });
 }
 
@@ -242,7 +254,7 @@ void Engine::InitDescriptors() {
 
     VkDescriptorImageInfo img_info{};
     img_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    img_info.imageView = _drawImage.image_view;
+    img_info.imageView = _draw_image.image_view;
 
     VkWriteDescriptorSet draw_image_write = {};
     draw_image_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -267,7 +279,7 @@ void Engine::InitDescriptors() {
 void Engine::InitPipelines()
 {
     InitBackgroundPipelines();
-    InitTrianglePipeline();
+    //InitTrianglePipeline();
     InitMeshPipeline();
 }
 
@@ -483,14 +495,43 @@ void Engine::DrawImGUI(const VkCommandBuffer cmd, const VkImageView target_image
     vkCmdEndRendering(cmd);
 }
 
+void Engine::DrawBackground(VkCommandBuffer cmd) {
+    /*
+    // Make a clear-color from the frame number. This will flash with a 120-frame period.
+    float flash = std::abs(std::sin(static_cast<float>(_frame_number) / 120.f));
+    VkClearColorValue clear_value = {{0.0f, 0.0f, flash, 1.0f}};
+
+    VkImageSubresourceRange clear_range = vkinit::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+
+    // Clear image
+    vkCmdClearColorImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clear_range);
+    */
+
+    ComputeEffect& effect = _background_effects[_current_background_effect];
+    // Bind the gradient drawing compute pipeline
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, effect.pipeline);
+    // Bind the descriptor set containing the draw image for the compute pipeline
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, effect.layout, 0, 1, &_draw_image_descriptors, 0,
+                            nullptr);
+
+    const ComputePushConstants& pc = _background_effects[_current_background_effect].data;
+    vkCmdPushConstants(cmd, effect.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePushConstants), &pc);
+
+    // Execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
+    vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(_draw_extent.width / 16.0)),
+                  static_cast<uint32_t>(std::ceil(_draw_extent.height / 16.0)), 1);
+}
+
 void Engine::DrawGeometry(VkCommandBuffer cmd) const
 {
     // Begin a render pass connected to our draw image, not to the swapchain image
-    VkRenderingAttachmentInfo color_attachment = vkinit::AttachmentInfo(_drawImage.image_view, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkRenderingAttachmentInfo color_attachment = vkinit::AttachmentInfo(_draw_image.image_view, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkRenderingAttachmentInfo depth_attachment = vkinit::DepthAttachmentInfo(_depth_image.image_view, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
-    const VkRenderingInfo render_info = vkinit::RenderingInfo(_draw_extent, &color_attachment, nullptr);
+    const VkRenderingInfo render_info = vkinit::RenderingInfo(_draw_extent, &color_attachment, &depth_attachment);
     vkCmdBeginRendering(cmd, &render_info);
 
+    /*
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _triangle_pipeline);
 
     VkViewport viewport = {};
@@ -509,8 +550,9 @@ void Engine::DrawGeometry(VkCommandBuffer cmd) const
     scissor.extent.height = _draw_extent.height;
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-    // Launch a draw command to draw 3 vertices
+    // Test triangle
     vkCmdDraw(cmd, 3, 1, 0, 0);
+
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _mesh_pipeline);
 
@@ -521,11 +563,46 @@ void Engine::DrawGeometry(VkCommandBuffer cmd) const
     vkCmdPushConstants(cmd, _mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &push_constants);
     vkCmdBindIndexBuffer(cmd, _rectangle.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
+    // Test rectangle
     vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+    */
+
+    // Test mesh
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _mesh_pipeline);
+
+    VkViewport viewport = {};
+    viewport.x = 0;
+    viewport.y = 0;
+    viewport.width = static_cast<float>(_draw_extent.width);
+    viewport.height = static_cast<float>(_draw_extent.height);
+    viewport.minDepth = 0.f;
+    viewport.maxDepth = 1.f;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    VkRect2D scissor = {};
+    scissor.offset.x = 0;
+    scissor.offset.y = 0;
+    scissor.extent.width = _draw_extent.width;
+    scissor.extent.height = _draw_extent.height;
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+    const glm::mat4 view = glm::translate(glm::vec3{ 0,0,-5 });
+    glm::mat4 projection = glm::perspective(glm::radians(70.f), static_cast<float>(_draw_extent.width) / static_cast<float>(_draw_extent.height), 10000.f, 0.1f);
+    // Invert the Y direction on projection matrix so that we are more similar to opengl and gltf axis
+    projection[1][1] *= -1;
+
+    GPUDrawPushConstants push_constants;
+    push_constants.vertex_buffer = testMeshes[2]->meshBuffers.vertex_buffer_address;
+    push_constants.world_matrix = projection * view;
+
+    vkCmdPushConstants(cmd, _mesh_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &push_constants);
+    vkCmdBindIndexBuffer(cmd, testMeshes[2]->meshBuffers.index_buffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+    vkCmdDrawIndexed(cmd, testMeshes[2]->surfaces[0].count, 1, testMeshes[2]->surfaces[0].startIndex, 0, 0);
 
     vkCmdEndRendering(cmd);
 }
 
+/*
 void Engine::InitTrianglePipeline()
 {
     VkShaderModule triangle_frag_shader;
@@ -568,8 +645,8 @@ void Engine::InitTrianglePipeline()
     pipeline_builder.DisableDepthTest();
 
     // Connect the image format we will draw into, from draw image
-    pipeline_builder.SetColorAttachmentFormat(_drawImage.image_format);
-    pipeline_builder.SetDepthFormat(VK_FORMAT_UNDEFINED);
+    pipeline_builder.SetColorAttachmentFormat(_draw_image.image_format);
+    pipeline_builder.SetDepthFormat(_depth_image.image_format);
 
     // Finally build the pipeline
     _triangle_pipeline = pipeline_builder.BuildPipeline(_device);
@@ -583,6 +660,7 @@ void Engine::InitTrianglePipeline()
         vkDestroyPipeline(_device, _triangle_pipeline, nullptr);
     });
 }
+*/
 
 void Engine::InitMeshPipeline()
 {
@@ -628,12 +706,12 @@ void Engine::InitMeshPipeline()
     pipeline_builder.SetMultisamplingNone();
     // No blending
     pipeline_builder.DisableBlending();
-    // No depth testing
-    pipeline_builder.DisableDepthTest();
+    // Setup depth testing
+    pipeline_builder.EnableDepthTest(true, VK_COMPARE_OP_GREATER_OR_EQUAL); // Depth goes from 1 to 0, so we want to test for greater or equal
 
     // Connect the image format we will draw into, from draw image
-    pipeline_builder.SetColorAttachmentFormat(_drawImage.image_format);
-    pipeline_builder.SetDepthFormat(VK_FORMAT_UNDEFINED);
+    pipeline_builder.SetColorAttachmentFormat(_draw_image.image_format);
+    pipeline_builder.SetDepthFormat(_depth_image.image_format);
 
     // Finally, build the pipeline
     _mesh_pipeline = pipeline_builder.BuildPipeline(_device);
@@ -649,6 +727,7 @@ void Engine::InitMeshPipeline()
 
 void Engine::InitDefaultData()
 {
+    /*
     std::array<Vertex,4> rect_vertices;
 
     rect_vertices[0].position = {0.5,-0.5, 0};
@@ -673,11 +752,15 @@ void Engine::InitDefaultData()
 
     _rectangle = UploadMeshToGpu(rect_indices, rect_vertices);
 
+
     //delete the rectangle data on engine shutdown
     _main_deletion_queue.PushFunction([&](){
         DestroyBuffer(_rectangle.index_buffer);
         DestroyBuffer(_rectangle.vertex_buffer);
     });
+    */
+
+    testMeshes = LoadGltfMeshes(this,"../assets/meshes/basicmesh.glb").value();
 }
 
 GPUMeshBuffers Engine::UploadMeshToGpu(const std::span<uint32_t> indices, const std::span<Vertex> vertices)
@@ -749,6 +832,11 @@ void Engine::Clean() {
             vkDestroySemaphore(_device, _frames[i].swapchain_semaphore, nullptr);
         }
 
+        for (auto& mesh : testMeshes) {
+            DestroyBuffer(mesh->meshBuffers.index_buffer);
+            DestroyBuffer(mesh->meshBuffers.vertex_buffer);
+        }
+
         _main_deletion_queue.Flush();
 
         DestroySwapchain();
@@ -781,28 +869,29 @@ void Engine::Draw() {
     VK_CHECK(vkResetCommandBuffer(cmd, 0));
     const VkCommandBufferBeginInfo cmd_begin_info = vkinit::CommandBufferBeginInfo(
         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We will use this command buffer exactly on
-    _draw_extent.width = _drawImage.image_extent.width;
-    _draw_extent.height = _drawImage.image_extent.height;
+    _draw_extent.width = _draw_image.image_extent.width;
+    _draw_extent.height = _draw_image.image_extent.height;
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmd_begin_info));
 
     // Transition our main draw image into a general layout so we can write into it
     // we will overwrite it all so we don't care about what was the older layout
-    vkutil::TransitionImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    vkutil::TransitionImage(cmd, _draw_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     DrawBackground(cmd);
 
-    // Transition the draw image into a color attachment layout so we can render into it
-    vkutil::TransitionImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // Transition the draw and depth images into a color/depth optimal attachment layout so we can render into it
+    vkutil::TransitionImage(cmd, _draw_image.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    vkutil::TransitionImage(cmd, _depth_image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 
     DrawGeometry(cmd);
 
     // Transition the draw image and the swapchain image into their correct transfer layouts
-    vkutil::TransitionImage(cmd, _drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    vkutil::TransitionImage(cmd, _draw_image.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     vkutil::TransitionImage(cmd, _swapchain_images[swapchain_image_index], VK_IMAGE_LAYOUT_UNDEFINED,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     // Execute a copy from the draw image into the swapchain
-    vkutil::CopyImageToImage(cmd, _drawImage.image, _swapchain_images[swapchain_image_index], _draw_extent,
+    vkutil::CopyImageToImage(cmd, _draw_image.image, _swapchain_images[swapchain_image_index], _draw_extent,
                              _swapchain_extent);
 
     // Draw imgui into the swapchain image
@@ -850,32 +939,7 @@ void Engine::Draw() {
     _frame_number++;
 }
 
-void Engine::DrawBackground(VkCommandBuffer cmd) {
-    /*
-    // Make a clear-color from the frame number. This will flash with a 120-frame period.
-    float flash = std::abs(std::sin(static_cast<float>(_frame_number) / 120.f));
-    VkClearColorValue clear_value = {{0.0f, 0.0f, flash, 1.0f}};
 
-    VkImageSubresourceRange clear_range = vkinit::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-
-    // Clear image
-    vkCmdClearColorImage(cmd, _drawImage._image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clear_range);
-    */
-
-    ComputeEffect& effect = _background_effects[_current_background_effect];
-    // Bind the gradient drawing compute pipeline
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, effect.pipeline);
-    // Bind the descriptor set containing the draw image for the compute pipeline
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, effect.layout, 0, 1, &_draw_image_descriptors, 0,
-                            nullptr);
-
-    const ComputePushConstants& pc = _background_effects[_current_background_effect].data;
-    vkCmdPushConstants(cmd, effect.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(ComputePushConstants), &pc);
-
-    // Execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
-    vkCmdDispatch(cmd, static_cast<uint32_t>(std::ceil(_draw_extent.width / 16.0)),
-                  static_cast<uint32_t>(std::ceil(_draw_extent.height / 16.0)), 1);
-}
 
 void Engine::Run() {
     SDL_Event e;

@@ -197,3 +197,16 @@ void PipelineBuilder::DisableDepthTest()
     _depth_stencil.minDepthBounds = 0.f;
     _depth_stencil.maxDepthBounds = 1.f;
 }
+
+void PipelineBuilder::EnableDepthTest(bool depth_write_enable, VkCompareOp depth_compare_op)
+{
+    _depth_stencil.depthTestEnable = VK_TRUE;
+    _depth_stencil.depthWriteEnable = depth_write_enable;
+    _depth_stencil.depthCompareOp = depth_compare_op;
+    _depth_stencil.depthBoundsTestEnable = VK_FALSE;
+    _depth_stencil.stencilTestEnable = VK_FALSE;
+    _depth_stencil.front = {};
+    _depth_stencil.back = {};
+    _depth_stencil.minDepthBounds = 0.f;
+    _depth_stencil.maxDepthBounds = 1.f;
+}
