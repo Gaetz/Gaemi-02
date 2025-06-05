@@ -179,7 +179,7 @@ void Engine::InitSwapchain() {
     VK_CHECK(vkCreateImageView(_device, &dview_info, nullptr, &_depth_image.image_view));
 
     // Clean
-    _main_deletion_queue.PushFunction([=]() {
+    _main_deletion_queue.PushFunction([=, this]() {
         vkDestroyImageView(_device, _draw_image.image_view, nullptr);
         vmaDestroyImage(_allocator, _draw_image.image, _draw_image.allocation);
 
@@ -209,7 +209,7 @@ void Engine::InitCommands() {
     VkCommandBufferAllocateInfo cmd_alloc_info = vkinit::CommandBufferAllocateInfo(_immCommandPool, 1);
     VK_CHECK(vkAllocateCommandBuffers(_device, &cmd_alloc_info, &_immCommandBuffer));
 
-    _main_deletion_queue.PushFunction([=]() { vkDestroyCommandPool(_device, _immCommandPool, nullptr); });
+    _main_deletion_queue.PushFunction([=, this]() { vkDestroyCommandPool(_device, _immCommandPool, nullptr); });
 }
 
 void Engine::InitSyncStructures() {
@@ -230,7 +230,7 @@ void Engine::InitSyncStructures() {
 
     // Fence for immediate submit
     VK_CHECK(vkCreateFence(_device, &fence_create_info, nullptr, &_immFence));
-    _main_deletion_queue.PushFunction([=]() { vkDestroyFence(_device, _immFence, nullptr); });
+    _main_deletion_queue.PushFunction([=, this]() { vkDestroyFence(_device, _immFence, nullptr); });
 }
 
 void Engine::InitDescriptors() {
@@ -304,13 +304,13 @@ void Engine::InitBackgroundPipelines() {
     VkShaderModule gradient_shader;
     if (!vkutil::LoadShaderModule("../assets/shaders/gradient_color.comp.spv", _device, &gradient_shader))
     {
-        fmt::print("Error when building the gradient compute shader \n");
+        fmt::println("Error when building the gradient compute shader \n");
     }
 
     VkShaderModule sky_shader;
     if (!vkutil::LoadShaderModule("../assets/shaders/sky.comp.spv", _device, &sky_shader))
     {
-        fmt::print("Error when building the sky compute shader \n");
+        fmt::println("Error when building the sky compute shader \n");
     }
 
     VkPipelineShaderStageCreateInfo stage_info{};
@@ -420,7 +420,7 @@ void Engine::InitImGUI() {
     ImGui_ImplVulkan_CreateFontsTexture();
 
     // Add destroy the imgui created structures
-    _main_deletion_queue.PushFunction([=]() {
+    _main_deletion_queue.PushFunction([=, this]() {
         ImGui_ImplVulkan_Shutdown();
         vkDestroyDescriptorPool(_device, imguiPool, nullptr);
     });
@@ -607,18 +607,18 @@ void Engine::InitTrianglePipeline()
 {
     VkShaderModule triangle_frag_shader;
     if (!vkutil::LoadShaderModule("../assets/shaders/colored_triangle.frag.spv", _device, &triangle_frag_shader)) {
-        fmt::print("Error when building the triangle fragment shader module");
+        fmt::println("Error when building the triangle fragment shader module");
     }
     else {
-        fmt::print("Triangle fragment shader succesfully loaded");
+        fmt::println("Triangle fragment shader succesfully loaded");
     }
 
     VkShaderModule triangle_vertex_shader;
     if (!vkutil::LoadShaderModule("../assets/shaders/colored_triangle.vert.spv", _device, &triangle_vertex_shader)) {
-        fmt::print("Error when building the triangle vertex shader module");
+        fmt::println("Error when building the triangle vertex shader module");
     }
     else {
-        fmt::print("Triangle vertex shader succesfully loaded");
+        fmt::println("Triangle vertex shader succesfully loaded");
     }
 
     // Build the pipeline layout that controls the inputs/outputs of the shader

@@ -28,7 +28,7 @@ std::optional<std::vector<std::shared_ptr<MeshAsset>>> LoadGltfMeshes(Engine* en
     if (load) {
         gltf = std::move(load.get());
     } else {
-        fmt::print("Failed to load glTF: {} \n", fastgltf::to_underlying(load.error()));
+        fmt::println("Failed to load glTF: {} \n", fastgltf::to_underlying(load.error()));
         return {};
     }
 
